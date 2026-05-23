@@ -587,6 +587,22 @@ const App = (() => {
                   : ''}
               </div>
             </div>
+            <!-- Soporte -->
+            <button id="support-btn"
+              class="text-xs text-slate-400 hover:text-indigo-300 border border-slate-700
+                     hover:border-indigo-700/60 rounded-lg px-3 py-1.5 transition
+                     flex items-center gap-1.5"
+              title="Soporte técnico – Mascotizaciones">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 shrink-0"
+                   fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172
+                     L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0
+                     9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z"/>
+              </svg>
+              Ayuda
+            </button>
+
             <!-- Logout -->
             <button id="logout-btn"
               class="text-xs text-slate-400 hover:text-red-400 border border-slate-700
@@ -624,6 +640,94 @@ const App = (() => {
             : ''}
         </footer>
       </div>
+
+      <!-- ══ Modal: Soporte técnico ════════════════════════════════════ -->
+      <div id="modal-support"
+           style="display:none;position:fixed;inset:0;z-index:9999;
+                  align-items:center;justify-content:center;padding:1rem">
+        <!-- Backdrop -->
+        <div id="support-backdrop"
+             style="position:absolute;inset:0;background:rgba(0,0,0,.75);
+                    backdrop-filter:blur(4px)"></div>
+        <!-- Card -->
+        <div style="position:relative;width:100%;max-width:420px;
+                    background:#1e293b;border:1px solid #334155;
+                    border-radius:1rem;padding:2rem;z-index:1;
+                    animation:fadeIn .2s ease-out">
+
+          <!-- Header -->
+          <div style="display:flex;align-items:flex-start;gap:1rem;margin-bottom:1.5rem">
+            <div style="width:3rem;height:3rem;border-radius:.75rem;flex-shrink:0;
+                        background:linear-gradient(135deg,#6366f1,#8b5cf6);
+                        display:flex;align-items:center;justify-content:center;
+                        box-shadow:0 8px 20px rgba(99,102,241,.35)">
+              <svg xmlns="http://www.w3.org/2000/svg" style="width:1.4rem;height:1.4rem"
+                   fill="none" viewBox="0 0 24 24" stroke="white" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172
+                         L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0
+                         9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z"/>
+              </svg>
+            </div>
+            <div>
+              <h3 style="color:#f1f5f9;font-size:1.1rem;font-weight:700;
+                          margin:0 0 .3rem;line-height:1.2">
+                ¿Necesitas ayuda?
+              </h3>
+              <p style="color:#64748b;font-size:.8rem;margin:0;line-height:1.5">
+                El equipo de <strong style="color:#94a3b8">Mascotizaciones</strong>
+                está disponible para ayudarte con la gestión de tu inventario.
+              </p>
+            </div>
+          </div>
+
+          <!-- Separador -->
+          <div style="border-top:1px solid #334155;margin-bottom:1.25rem"></div>
+
+          <!-- Info de contacto -->
+          <div style="background:#0f172a;border:1px solid #334155;border-radius:.625rem;
+                      padding:1rem;margin-bottom:1.25rem">
+            <p style="color:#64748b;font-size:.72rem;font-weight:600;
+                       text-transform:uppercase;letter-spacing:.06em;margin:0 0 .5rem">
+              Soporte por correo electrónico
+            </p>
+            <p style="color:#a5b4fc;font-size:.875rem;font-weight:500;margin:0 0 .25rem">
+              agencia.mascotizaciones@gmail.com
+            </p>
+            <p style="color:#475569;font-size:.72rem;margin:0">
+              Tiempo de respuesta habitual: mismo día hábil
+            </p>
+          </div>
+
+          <!-- Acciones -->
+          <div style="display:flex;flex-direction:column;gap:.625rem">
+            <a href="mailto:agencia.mascotizaciones@gmail.com?subject=Soporte%20Plataforma%20Full%20Stock"
+               style="display:flex;align-items:center;justify-content:center;gap:.5rem;
+                      background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;
+                      font-weight:600;font-size:.875rem;padding:.75rem;border-radius:.5rem;
+                      text-decoration:none;transition:opacity .15s;text-align:center"
+               onmouseover="this.style.opacity='.88'"
+               onmouseout="this.style.opacity='1'">
+              <svg xmlns="http://www.w3.org/2000/svg" style="width:1rem;height:1rem;flex-shrink:0"
+                   fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7
+                         a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+              </svg>
+              Enviar correo a Soporte
+            </a>
+            <button id="support-close"
+              style="padding:.7rem;background:#0f172a;color:#94a3b8;
+                     font-weight:500;font-size:.875rem;border-radius:.5rem;
+                     border:1px solid #334155;cursor:pointer;transition:background .15s"
+              onmouseover="this.style.background='#1e293b'"
+              onmouseout="this.style.background='#0f172a'">
+              Cerrar
+            </button>
+          </div>
+
+        </div>
+      </div>
     `;
 
     document.querySelectorAll('.nav-tab').forEach(btn => {
@@ -635,6 +739,21 @@ const App = (() => {
       Auth.clear();
       showAuth('login');
       showToast('Sesión cerrada.', 'info');
+    });
+
+    // ── Modal de soporte ─────────────────────────────────────────────
+    const modalSupport    = document.getElementById('modal-support');
+    const supportBackdrop = document.getElementById('support-backdrop');
+    const supportClose    = document.getElementById('support-close');
+
+    document.getElementById('support-btn').addEventListener('click', () => {
+      modalSupport.style.display = 'flex';
+    });
+    function cerrarSupport() { modalSupport.style.display = 'none'; }
+    supportClose.addEventListener('click',    cerrarSupport);
+    supportBackdrop.addEventListener('click', cerrarSupport);
+    document.addEventListener('keydown', function escSupport(e) {
+      if (e.key === 'Escape' && modalSupport.style.display === 'flex') cerrarSupport();
     });
 
     navigate('catalog');
