@@ -175,7 +175,7 @@ const Builder = (() => {
             <p class="font-semibold text-white">${col.name}</p>
             <p class="text-xs text-slate-400">slug: <code class="text-indigo-400">${col.slug}</code>
               · ${col.fields.length} campo${col.fields.length !== 1 ? 's' : ''}
-              · API: <code class="text-emerald-400">/api/v1/collections/${col.slug}</code>
+              · API: <code class="text-emerald-400">/api/v1/${Auth.getTenantSlug()}/collections/${col.slug}</code>
             </p>
           </div>
           <button class="btn-danger text-xs py-1 px-3" data-delete="${col.slug}">Eliminar</button>

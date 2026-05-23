@@ -1,77 +1,90 @@
 /**
- * auth.js - Middleware de autenticacion para Full Stock.
- *
- * Estrategia: Bearer token aleatorio almacenado en memoria del servidor.
- * Al reiniciar el servidor todos los tokens se invalidan (comportamiento esperado en MVP).
+ * auth.js — Middleware de autenticación JWT para Full Stock SaaS.
  *
  * Flujo:
- *   1. POST /admin/login  -> valida credenciales -> devuelve token
- *   2. Cliente envia "Authorization: Bearer <token>" en cada request
- *   3. requireAuth() verifica el token contra el store en memoria
- *   4. POST /admin/logout -> elimina el token del store
+ *   1. POST /auth/register  → crea cuenta + devuelve JWT
+ *   2. POST /auth/login     → valida credenciales + devuelve JWT
+ *   3. Cada request a /admin/* envía "Authorization: Bearer <jwt>"
+ *   4. requireAuth() verifica firma y extrae req.tenant
+ *
+ * El JWT payload incluye: { tenantId, tenantSlug, email, name, iat, exp }
+ * → req.tenant = { id, slug, email, name }
+ *
+ * Implementación JWT propia con Node.js crypto (sin dependencias externas).
  */
 
 const crypto = require('crypto');
 const config = require('../config');
 
-// Store en memoria: Map<token_string, { username, expiresAt }>
-const sessions = new Map();
+const SECRET = config.jwt.secret;
 
-// --- Helpers -----------------------------------------------------------------
+// ─── Base64URL helpers ────────────────────────────────────────────────────────
 
-function generateToken() {
-  return crypto.randomBytes(32).toString('hex');
+function toB64url(buf) {
+  return buf.toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=/g,  '');
 }
+
+function fromB64url(str) {
+  str = str.replace(/-/g, '+').replace(/_/g, '/');
+  while (str.length % 4) str += '=';
+  return Buffer.from(str, 'base64');
+}
+
+// ─── JWT sign ────────────────────────────────────────────────────────────────
+
+function signJWT(payload) {
+  const header  = toB64url(Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })));
+  const now     = Math.floor(Date.now() / 1000);
+  const body    = toB64url(Buffer.from(JSON.stringify({
+    ...payload,
+    iat: now,
+    exp: now + config.jwt.expiresInHours * 3600,
+  })));
+  const sig = toB64url(
+    crypto.createHmac('sha256', SECRET).update(`${header}.${body}`).digest()
+  );
+  return `${header}.${body}.${sig}`;
+}
+
+// ─── JWT verify ──────────────────────────────────────────────────────────────
+
+function verifyJWT(token) {
+  const parts = (token || '').split('.');
+  if (parts.length !== 3) throw new Error('Token malformado.');
+
+  const [header, body, sig] = parts;
+
+  const expectedSig = toB64url(
+    crypto.createHmac('sha256', SECRET).update(`${header}.${body}`).digest()
+  );
+
+  // Comparación en tiempo constante para evitar timing attacks
+  if (
+    sig.length !== expectedSig.length ||
+    !crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expectedSig))
+  ) {
+    throw new Error('Firma inválida.');
+  }
+
+  const payload = JSON.parse(fromB64url(body).toString('utf8'));
+  if (payload.exp < Math.floor(Date.now() / 1000)) {
+    throw new Error('Token expirado.');
+  }
+
+  return payload;
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function extractToken(req) {
   const auth = req.headers.authorization || '';
   return auth.startsWith('Bearer ') ? auth.slice(7).trim() : null;
 }
 
-// Limpieza periodica de tokens expirados cada 30 minutos
-setInterval(function pruneExpired() {
-  const now = Date.now();
-  for (const [token, session] of sessions.entries()) {
-    if (now > session.expiresAt) sessions.delete(token);
-  }
-}, 30 * 60 * 1000);
-
-// --- Handlers ----------------------------------------------------------------
-
-function login(req, res) {
-  const { username, password } = req.body;
-
-  if (!username || !password) {
-    return res.status(400).json({ success: false, message: 'Usuario y contrasena requeridos.' });
-  }
-
-  if (username !== config.admin.username || password !== config.admin.password) {
-    // Retardo de 300ms para dificultar ataques de fuerza bruta
-    return setTimeout(() => {
-      res.status(401).json({ success: false, message: 'Credenciales incorrectas.' });
-    }, 300);
-  }
-
-  const token     = generateToken();
-  const expiresAt = Date.now() + config.token.expiresInMs;
-  sessions.set(token, { username, expiresAt });
-
-  res.json({
-    success:   true,
-    token,
-    expiresAt,
-    username,
-    message:   'Inicio de sesion exitoso.',
-  });
-}
-
-function logout(req, res) {
-  const token = extractToken(req);
-  if (token) sessions.delete(token);
-  res.json({ success: true, message: 'Sesion cerrada.' });
-}
-
-// --- Middleware requireAuth --------------------------------------------------
+// ─── Middleware requireAuth ───────────────────────────────────────────────────
 
 function requireAuth(req, res, next) {
   const token = extractToken(req);
@@ -80,31 +93,23 @@ function requireAuth(req, res, next) {
     return res.status(401).json({
       success: false,
       code:    'UNAUTHORIZED',
-      message: 'Se requiere autenticacion. Inicia sesion en el panel.',
+      message: 'Se requiere autenticación. Inicia sesión en el panel.',
     });
   }
 
-  const session = sessions.get(token);
-
-  if (!session) {
-    return res.status(401).json({
-      success: false,
-      code:    'INVALID_TOKEN',
-      message: 'Token invalido. Vuelve a iniciar sesion.',
-    });
+  try {
+    const payload = verifyJWT(token);
+    req.tenant = {
+      id:    payload.tenantId,
+      slug:  payload.tenantSlug,
+      email: payload.email,
+      name:  payload.name,
+    };
+    next();
+  } catch (err) {
+    const code = err.message.includes('expirado') ? 'TOKEN_EXPIRED' : 'INVALID_TOKEN';
+    res.status(401).json({ success: false, code, message: err.message });
   }
-
-  if (Date.now() > session.expiresAt) {
-    sessions.delete(token);
-    return res.status(401).json({
-      success: false,
-      code:    'TOKEN_EXPIRED',
-      message: 'Sesion expirada. Vuelve a iniciar sesion.',
-    });
-  }
-
-  req.user = { username: session.username };
-  next();
 }
 
-module.exports = { login, logout, requireAuth };
+module.exports = { signJWT, verifyJWT, requireAuth };

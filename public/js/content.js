@@ -94,7 +94,7 @@ const Content = (() => {
           <div>
             <h2 class="text-xl font-bold text-white">${activeSchema.name}</h2>
             <p class="text-xs text-slate-400">
-              API pública: <code class="text-emerald-400">/api/v1/collections/${activeSlug}</code>
+              API pública: <code class="text-emerald-400">/api/v1/${Auth.getTenantSlug()}/collections/${activeSlug}</code>
             </p>
           </div>
           <button id="new-item-btn" class="btn-primary">
@@ -387,10 +387,10 @@ const Content = (() => {
       const formData = new FormData();
       formData.append('image', file);
 
-      const res  = await fetch('/admin/upload', { method: 'POST', body: formData });
-      const json = await res.json();
+      // Usar API.upload() para que incluya el Bearer token automaticamente
+      const json = await API.upload(formData);
 
-      if (!res.ok || !json.success) throw new Error(json.message || 'Error al subir.');
+      if (!json.success) throw new Error(json.message || 'Error al subir.');
 
       // Éxito: actualizar hidden input y mostrar preview
       hiddenInput.value = json.url;

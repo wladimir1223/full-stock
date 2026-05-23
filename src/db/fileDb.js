@@ -1,32 +1,52 @@
 /**
- * fileDb.js — Abstracción de base de datos basada en archivos JSON.
- * Todas las operaciones son síncronas respecto a la lógica de negocio
- * pero usan fs/promises para no bloquear el event loop.
+ * fileDb.js — Abstracción de base de datos multi-tenant basada en archivos JSON.
+ *
+ * Aislamiento por tenant:
+ *   src/data/tenants/{tenantId}/schemas.json          → definiciones de colecciones
+ *   src/data/tenants/{tenantId}/content/{slug}.json   → items de cada colección
+ *
+ * TODAS las funciones reciben `tenantId` como primer argumento.
+ * Nunca puede haber colisión de datos entre tenants distintos.
  */
 
 const fs   = require('fs');
 const path = require('path');
 
-const DATA_DIR    = path.join(__dirname, 'data');
-const SCHEMAS_FILE = path.join(DATA_DIR, 'schemas.json');
-const CONTENT_DIR  = path.join(DATA_DIR, 'content');
+const DATA_DIR = path.join(__dirname, '..', 'data');
 
-// Garantiza que los directorios existan al arrancar el módulo
-function ensureDirs() {
-  if (!fs.existsSync(DATA_DIR))    fs.mkdirSync(DATA_DIR,    { recursive: true });
-  if (!fs.existsSync(CONTENT_DIR)) fs.mkdirSync(CONTENT_DIR, { recursive: true });
-  if (!fs.existsSync(SCHEMAS_FILE)) fs.writeFileSync(SCHEMAS_FILE, '{}', 'utf8');
+// ─── Rutas por tenant ─────────────────────────────────────────────────────────
+
+function tenantDir(tenantId) {
+  return path.join(DATA_DIR, 'tenants', tenantId);
 }
-ensureDirs();
+
+function schemasPath(tenantId) {
+  return path.join(tenantDir(tenantId), 'schemas.json');
+}
+
+function contentDir(tenantId) {
+  return path.join(tenantDir(tenantId), 'content');
+}
+
+function contentPath(tenantId, slug) {
+  return path.join(contentDir(tenantId), `${slug}.json`);
+}
+
+// ─── Bootstrap del tenant ─────────────────────────────────────────────────────
+
+function ensureTenant(tenantId) {
+  const tDir  = tenantDir(tenantId);
+  const cDir  = contentDir(tenantId);
+  const sPath = schemasPath(tenantId);
+  if (!fs.existsSync(tDir))  fs.mkdirSync(tDir,  { recursive: true });
+  if (!fs.existsSync(cDir))  fs.mkdirSync(cDir,  { recursive: true });
+  if (!fs.existsSync(sPath)) fs.writeFileSync(sPath, '{}', 'utf8');
+}
 
 // ─── Helpers genéricos ────────────────────────────────────────────────────────
 
 function readJSON(filePath) {
-  try {
-    return JSON.parse(fs.readFileSync(filePath, 'utf8'));
-  } catch {
-    return null;
-  }
+  try { return JSON.parse(fs.readFileSync(filePath, 'utf8')); } catch { return null; }
 }
 
 function writeJSON(filePath, data) {
@@ -35,76 +55,76 @@ function writeJSON(filePath, data) {
 
 // ─── Schemas (definiciones de colecciones) ────────────────────────────────────
 
-function getSchemas() {
-  return readJSON(SCHEMAS_FILE) || {};
+function getSchemas(tenantId) {
+  ensureTenant(tenantId);
+  return readJSON(schemasPath(tenantId)) || {};
 }
 
-function getSchema(slug) {
-  return getSchemas()[slug] || null;
+function getSchema(tenantId, slug) {
+  return getSchemas(tenantId)[slug] || null;
 }
 
-function saveSchema(slug, schema) {
-  const all = getSchemas();
+function saveSchema(tenantId, slug, schema) {
+  ensureTenant(tenantId);
+  const all  = getSchemas(tenantId);
   all[slug]  = schema;
-  writeJSON(SCHEMAS_FILE, all);
+  writeJSON(schemasPath(tenantId), all);
 }
 
-function deleteSchema(slug) {
-  const all = getSchemas();
+function deleteSchema(tenantId, slug) {
+  const all = getSchemas(tenantId);
   delete all[slug];
-  writeJSON(SCHEMAS_FILE, all);
+  writeJSON(schemasPath(tenantId), all);
 }
 
 // ─── Contenido (items dentro de una colección) ────────────────────────────────
 
-function contentPath(slug) {
-  return path.join(CONTENT_DIR, `${slug}.json`);
-}
-
-function getItems(slug) {
-  const file = contentPath(slug);
+function getItems(tenantId, slug) {
+  const file = contentPath(tenantId, slug);
   if (!fs.existsSync(file)) return [];
   return readJSON(file) || [];
 }
 
-function getItem(slug, id) {
-  return getItems(slug).find(item => item.id === id) || null;
+function getItem(tenantId, slug, id) {
+  return getItems(tenantId, slug).find(item => item.id === id) || null;
 }
 
-function saveItems(slug, items) {
-  writeJSON(contentPath(slug), items);
+function saveItems(tenantId, slug, items) {
+  ensureTenant(tenantId);
+  writeJSON(contentPath(tenantId, slug), items);
 }
 
-function createItem(slug, item) {
-  const items = getItems(slug);
+function createItem(tenantId, slug, item) {
+  const items = getItems(tenantId, slug);
   items.push(item);
-  saveItems(slug, items);
+  saveItems(tenantId, slug, items);
   return item;
 }
 
-function updateItem(slug, id, updates) {
-  const items   = getItems(slug);
-  const index   = items.findIndex(i => i.id === id);
+function updateItem(tenantId, slug, id, updates) {
+  const items = getItems(tenantId, slug);
+  const index = items.findIndex(i => i.id === id);
   if (index === -1) return null;
-  items[index]  = { ...items[index], ...updates };
-  saveItems(slug, items);
+  items[index] = { ...items[index], ...updates };
+  saveItems(tenantId, slug, items);
   return items[index];
 }
 
-function deleteItem(slug, id) {
-  const items    = getItems(slug);
+function deleteItem(tenantId, slug, id) {
+  const items    = getItems(tenantId, slug);
   const filtered = items.filter(i => i.id !== id);
   if (filtered.length === items.length) return false;
-  saveItems(slug, filtered);
+  saveItems(tenantId, slug, filtered);
   return true;
 }
 
-function deleteCollectionContent(slug) {
-  const file = contentPath(slug);
+function deleteCollectionContent(tenantId, slug) {
+  const file = contentPath(tenantId, slug);
   if (fs.existsSync(file)) fs.unlinkSync(file);
 }
 
 module.exports = {
+  ensureTenant,
   getSchemas,
   getSchema,
   saveSchema,
