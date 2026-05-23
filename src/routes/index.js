@@ -6,6 +6,7 @@
  * ══════════════════════════════════════════════════════════════
  *  POST /auth/register
  *  POST /auth/login
+ *  POST /auth/recover
  *
  *  GET  /api/v1/:tenant_slug/collections
  *  GET  /api/v1/:tenant_slug/collections/:collection_slug
@@ -44,6 +45,7 @@ const { requireAuth } = require('../middleware/auth');
 
 router.post('/auth/register', authCtrl.register);
 router.post('/auth/login',    authCtrl.login);
+router.post('/auth/recover',  authCtrl.recover);
 
 // ════════════════════════════════════════════════════════════════
 // API PÚBLICA — Consumo externo por tenant_slug

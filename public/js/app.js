@@ -1,21 +1,60 @@
 /**
- * app.js — Orquestador principal de Full Stock SaaS.
+ * app.js — Orquestador principal de Full Stock.
  * Gestiona autenticación multi-tenant, navegación y sistema de toasts.
  */
 
 const App = (() => {
-  const PANELS = {
-    builder: { label: 'Builder',          module: () => Builder },
-    content: { label: 'Gestor Contenido', module: () => Content },
-  };
+  // PANELS se construye dinámicamente en renderApp() según el rol del usuario
+  let PANELS = {};
 
   let currentPanel = null;
+
+  // ════════════════════════════════════════════════════════════
+  // DETECCIÓN DE ROL
+  // ════════════════════════════════════════════════════════════
+
+  /**
+   * "Modo Desarrollador" activo → muestra el Builder avanzado.
+   * Para activarlo, añade ?dev=1 a la URL una sola vez.
+   * Para desactivarlo, añade ?dev=0.
+   */
+  function isSuperAdmin() {
+    return localStorage.getItem('fs_dev_mode') === '1';
+  }
+
+  /**
+   * Devuelve los paneles disponibles según el rol:
+   *   - Cliente normal → Mis Categorías + Mis Productos
+   *   - Modo Desarrollador → los anteriores + Builder Avanzado
+   */
+  function getPanels() {
+    const base = {
+      catalog: { label: '🗂️ Mis Categorías', module: () => Catalog },
+      content: { label: '📦 Mis Productos',  module: () => Content },
+    };
+    if (isSuperAdmin()) {
+      base.builder = { label: '⚙️ Builder', module: () => Builder, devOnly: true };
+    }
+    return base;
+  }
 
   // ════════════════════════════════════════════════════════════
   // INIT
   // ════════════════════════════════════════════════════════════
 
   function init() {
+    // Leer param ?dev=1 / ?dev=0 para activar/desactivar modo desarrollador
+    const params = new URLSearchParams(window.location.search);
+    if (params.has('dev')) {
+      if (params.get('dev') === '1') {
+        localStorage.setItem('fs_dev_mode', '1');
+      } else {
+        localStorage.removeItem('fs_dev_mode');
+      }
+      // Limpiar la URL sin recargar
+      history.replaceState(null, '', window.location.pathname);
+    }
+
     if (Auth.isLoggedIn()) {
       renderApp();
     } else {
@@ -49,7 +88,7 @@ const App = (() => {
           <h1 class="text-2xl font-bold">
             <span class="text-white">Full</span><span class="text-indigo-400">Stock</span>
           </h1>
-          <p class="text-slate-500 text-sm mt-1">Headless CMS · SaaS</p>
+          <p class="text-slate-500 text-sm mt-1">Gestor de Inventario</p>
         </div>
 
         <!-- Card -->
@@ -104,10 +143,13 @@ const App = (() => {
                       style="width:100%;box-sizing:border-box;background:#0f172a;border:1px solid #334155;
                              border-radius:.5rem;color:#f1f5f9;padding:.55rem 2.5rem .55rem .75rem;
                              font-size:.875rem;outline:none"/>
-                    <button id="li-toggle" type="button"
+                    <button id="li-toggle" type="button" title="Mostrar / ocultar contraseña"
                       style="position:absolute;right:.65rem;top:50%;transform:translateY(-50%);
-                             background:none;border:none;cursor:pointer;color:#64748b;padding:0">
-                      👁
+                             background:none;border:none;cursor:pointer;color:#64748b;padding:.2rem;
+                             display:flex;align-items:center;border-radius:.25rem;
+                             transition:color .15s" onmouseover="this.style.color='#94a3b8'"
+                      onmouseout="this.style.color='#64748b'">
+                      <svg id="li-eye-icon" xmlns="http://www.w3.org/2000/svg" style="width:1rem;height:1rem;display:block;pointer-events:none" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                     </button>
                   </div>
                 </div>
@@ -122,6 +164,17 @@ const App = (() => {
                        border:none;cursor:pointer;transition:opacity .15s">
                 Entrar
               </button>
+
+              <!-- Forgot password link -->
+              <div style="text-align:center;margin-top:.875rem">
+                <button id="btn-forgot" type="button"
+                  style="background:none;border:none;cursor:pointer;color:#6366f1;font-size:.78rem;
+                         font-weight:500;padding:.2rem .4rem;border-radius:.25rem;transition:color .15s"
+                  onmouseover="this.style.color='#818cf8'"
+                  onmouseout="this.style.color='#6366f1'">
+                  ¿Olvidaste tu contraseña?
+                </button>
+              </div>
             </div>
 
             <!-- ── PANEL REGISTRO ── -->
@@ -157,20 +210,40 @@ const App = (() => {
                                 text-transform:uppercase;letter-spacing:.06em;margin-bottom:.35rem">
                     Contraseña <span style="color:#475569;font-weight:400">(mínimo 8 caracteres)</span>
                   </label>
-                  <input id="re-pass" type="password" placeholder="••••••••"
-                    autocomplete="new-password"
-                    style="width:100%;box-sizing:border-box;background:#0f172a;border:1px solid #334155;
-                           border-radius:.5rem;color:#f1f5f9;padding:.55rem .75rem;font-size:.875rem;outline:none"/>
+                  <div style="position:relative">
+                    <input id="re-pass" type="password" placeholder="••••••••"
+                      autocomplete="new-password"
+                      style="width:100%;box-sizing:border-box;background:#0f172a;border:1px solid #334155;
+                             border-radius:.5rem;color:#f1f5f9;padding:.55rem 2.5rem .55rem .75rem;
+                             font-size:.875rem;outline:none"/>
+                    <button id="re-toggle1" type="button" title="Mostrar / ocultar contraseña"
+                      style="position:absolute;right:.65rem;top:50%;transform:translateY(-50%);
+                             background:none;border:none;cursor:pointer;color:#64748b;padding:.2rem;
+                             display:flex;align-items:center;border-radius:.25rem;transition:color .15s"
+                      onmouseover="this.style.color='#94a3b8'" onmouseout="this.style.color='#64748b'">
+                      <svg xmlns="http://www.w3.org/2000/svg" style="width:1rem;height:1rem;display:block;pointer-events:none" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                    </button>
+                  </div>
                 </div>
                 <div>
                   <label style="display:block;font-size:.7rem;font-weight:600;color:#94a3b8;
                                 text-transform:uppercase;letter-spacing:.06em;margin-bottom:.35rem">
                     Confirmar contraseña
                   </label>
-                  <input id="re-pass2" type="password" placeholder="••••••••"
-                    autocomplete="new-password"
-                    style="width:100%;box-sizing:border-box;background:#0f172a;border:1px solid #334155;
-                           border-radius:.5rem;color:#f1f5f9;padding:.55rem .75rem;font-size:.875rem;outline:none"/>
+                  <div style="position:relative">
+                    <input id="re-pass2" type="password" placeholder="••••••••"
+                      autocomplete="new-password"
+                      style="width:100%;box-sizing:border-box;background:#0f172a;border:1px solid #334155;
+                             border-radius:.5rem;color:#f1f5f9;padding:.55rem 2.5rem .55rem .75rem;
+                             font-size:.875rem;outline:none"/>
+                    <button id="re-toggle2" type="button" title="Mostrar / ocultar contraseña"
+                      style="position:absolute;right:.65rem;top:50%;transform:translateY(-50%);
+                             background:none;border:none;cursor:pointer;color:#64748b;padding:.2rem;
+                             display:flex;align-items:center;border-radius:.25rem;transition:color .15s"
+                      onmouseover="this.style.color='#94a3b8'" onmouseout="this.style.color='#64748b'">
+                      <svg xmlns="http://www.w3.org/2000/svg" style="width:1rem;height:1rem;display:block;pointer-events:none" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/></svg>
+                    </button>
+                  </div>
                 </div>
               </div>
               <div id="re-error"
@@ -190,6 +263,74 @@ const App = (() => {
 
           </div><!-- /padding -->
         </div><!-- /card -->
+      </div>
+
+      <!-- ── Modal: Recuperar contraseña ──────────────────────────────── -->
+      <div id="modal-forgot"
+           style="display:none;position:fixed;inset:0;z-index:9999;
+                  align-items:center;justify-content:center;padding:1rem">
+        <!-- Backdrop -->
+        <div id="modal-forgot-bd"
+             style="position:absolute;inset:0;background:rgba(0,0,0,.75);
+                    backdrop-filter:blur(4px)"></div>
+        <!-- Card -->
+        <div style="position:relative;width:100%;max-width:400px;
+                    background:#1e293b;border:1px solid #334155;
+                    border-radius:1rem;padding:2rem;z-index:1;
+                    animation:fadeIn .2s ease-out">
+          <!-- Header -->
+          <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:1.5rem">
+            <div style="width:2.5rem;height:2.5rem;border-radius:.625rem;flex-shrink:0;
+                        background:linear-gradient(135deg,#6366f1,#8b5cf6);
+                        display:flex;align-items:center;justify-content:center">
+              <svg xmlns="http://www.w3.org/2000/svg"
+                   style="width:1.25rem;height:1.25rem" fill="none" viewBox="0 0 24 24"
+                   stroke="white" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4
+                         a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
+              </svg>
+            </div>
+            <div>
+              <h3 style="color:#f1f5f9;font-size:1rem;font-weight:700;margin:0 0 .2rem">
+                Recuperar contraseña
+              </h3>
+              <p style="color:#64748b;font-size:.75rem;margin:0">
+                Te enviaremos las instrucciones por email.
+              </p>
+            </div>
+          </div>
+          <!-- Input email -->
+          <label style="display:block;font-size:.7rem;font-weight:600;color:#94a3b8;
+                         text-transform:uppercase;letter-spacing:.06em;margin-bottom:.35rem">
+            Correo electrónico
+          </label>
+          <input id="forgot-email" type="email" placeholder="tu@negocio.com"
+            autocomplete="email"
+            style="width:100%;box-sizing:border-box;background:#0f172a;border:1px solid #334155;
+                   border-radius:.5rem;color:#f1f5f9;padding:.6rem .75rem;font-size:.875rem;
+                   outline:none;transition:border-color .15s"/>
+          <!-- Error -->
+          <div id="forgot-error"
+               style="display:none;background:#450a0a;border:1px solid #991b1b;
+                      border-radius:.5rem;color:#f87171;font-size:.8rem;
+                      padding:.65rem 1rem;margin-top:.75rem"></div>
+          <!-- Acciones -->
+          <div style="display:flex;gap:.75rem;margin-top:1.25rem">
+            <button id="forgot-submit"
+              style="flex:1;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;
+                     font-weight:600;font-size:.875rem;padding:.65rem;border-radius:.5rem;
+                     border:none;cursor:pointer;transition:opacity .15s">
+              Recuperar contraseña
+            </button>
+            <button id="forgot-cancel"
+              style="padding:.65rem 1rem;background:#0f172a;color:#94a3b8;
+                     font-weight:500;font-size:.875rem;border-radius:.5rem;
+                     border:1px solid #334155;cursor:pointer;transition:background .15s">
+              Cancelar
+            </button>
+          </div>
+        </div>
       </div>
     `;
     document.body.appendChild(wrap);
@@ -217,9 +358,22 @@ const App = (() => {
     const liError  = wrap.querySelector('#li-error');
     const liToggle = wrap.querySelector('#li-toggle');
 
-    liToggle.addEventListener('click', () => {
-      liPass.type = liPass.type === 'password' ? 'text' : 'password';
-    });
+    // ── Helper: ojo de contraseña (eye / eye-slash) ──────────────────
+    const SVG_EYE_OPEN =
+      '<svg xmlns="http://www.w3.org/2000/svg" style="width:1rem;height:1rem;display:block;pointer-events:none" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">' +
+      '<path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>' +
+      '<path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>' +
+      '</svg>';
+    const SVG_EYE_SLASH =
+      '<svg xmlns="http://www.w3.org/2000/svg" style="width:1rem;height:1rem;display:block;pointer-events:none" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">' +
+      '<path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>' +
+      '</svg>';
+    function togglePassInput(inputEl, btnEl) {
+      const show   = inputEl.type === 'password';
+      inputEl.type = show ? 'text' : 'password';
+      btnEl.innerHTML = show ? SVG_EYE_SLASH : SVG_EYE_OPEN;
+    }
+    liToggle.addEventListener('click', () => togglePassInput(liPass, liToggle));
 
     [liEmail, liPass].forEach(el => {
       el.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
@@ -260,6 +414,10 @@ const App = (() => {
     const reBtn     = wrap.querySelector('#re-btn');
     const reError   = wrap.querySelector('#re-error');
     const reSlug    = wrap.querySelector('#re-slug-preview');
+    const reToggle1 = wrap.querySelector('#re-toggle1');
+    const reToggle2 = wrap.querySelector('#re-toggle2');
+    reToggle1.addEventListener('click', () => togglePassInput(rePass, reToggle1));
+    reToggle2.addEventListener('click', () => togglePassInput(rePass2, reToggle2));
 
     // Preview del slug en tiempo real
     reName.addEventListener('input', () => {
@@ -316,6 +474,52 @@ const App = (() => {
         reBtn.textContent  = 'Crear cuenta gratis';
       }
     }
+
+    // ── Recuperar contraseña (modal) ──────────────────────────────────
+    const modalForgot  = wrap.querySelector('#modal-forgot');
+    const forgotEmail  = wrap.querySelector('#forgot-email');
+    const forgotError  = wrap.querySelector('#forgot-error');
+    const forgotSubmit = wrap.querySelector('#forgot-submit');
+    const forgotCancel = wrap.querySelector('#forgot-cancel');
+    const forgotBd     = wrap.querySelector('#modal-forgot-bd');
+
+    wrap.querySelector('#btn-forgot').addEventListener('click', () => {
+      forgotEmail.value         = liEmail.value.trim(); // pre-rellena si ya escribió el email
+      forgotError.style.display = 'none';
+      modalForgot.style.display = 'flex';
+      setTimeout(() => forgotEmail.focus(), 60);
+    });
+
+    function cerrarForgot() { modalForgot.style.display = 'none'; }
+    forgotCancel.addEventListener('click', cerrarForgot);
+    forgotBd.addEventListener('click', cerrarForgot);
+    forgotEmail.addEventListener('keydown', e => {
+      if (e.key === 'Enter')  forgotSubmit.click();
+      if (e.key === 'Escape') cerrarForgot();
+    });
+
+    forgotSubmit.addEventListener('click', async () => {
+      const email = forgotEmail.value.trim();
+      if (!email) {
+        forgotError.textContent   = 'Introduce tu dirección de correo electrónico.';
+        forgotError.style.display = '';
+        forgotEmail.focus();
+        return;
+      }
+      forgotError.style.display = 'none';
+      forgotSubmit.disabled     = true;
+      forgotSubmit.textContent  = 'Enviando…';
+
+      try { await API.auth.recover(email); } catch (_) { /* siempre mostramos éxito */ }
+
+      cerrarForgot();
+      showToast(
+        'Si el correo está registrado, te hemos enviado las instrucciones para restablecer tu contraseña.',
+        'success'
+      );
+      forgotSubmit.disabled    = false;
+      forgotSubmit.textContent = 'Recuperar contraseña';
+    });
   }
 
   // Alias para compatibilidad con el handler 401 de api.js
@@ -326,6 +530,9 @@ const App = (() => {
   // ════════════════════════════════════════════════════════════
 
   function renderApp() {
+    // Reconstruir paneles al renderizar (respeta el rol actual)
+    PANELS = getPanels();
+
     const tenantName = Auth.getName()       || 'Mi cuenta';
     const tenantSlug = Auth.getTenantSlug() || '';
     const initials   = tenantName.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
@@ -360,7 +567,9 @@ const App = (() => {
           <nav class="flex items-center gap-1 bg-slate-800 rounded-lg p-1">
             ${Object.entries(PANELS).map(([key, p]) => `
               <button class="nav-tab text-sm px-4 py-1.5 rounded-md transition font-medium
-                             text-slate-400" data-panel="${key}">${p.label}</button>
+                             text-slate-400${p.devOnly ? ' border border-orange-900/40' : ''}"
+                      data-panel="${key}"
+                      title="${p.devOnly ? 'Modo Desarrollador activo' : ''}">${p.label}</button>
             `).join('')}
           </nav>
 
@@ -400,10 +609,18 @@ const App = (() => {
 
         <!-- Footer -->
         <footer class="bg-slate-900 border-t border-slate-800 px-6 py-2
-                        text-xs text-slate-600 flex justify-between">
-          <span>Full Stock SaaS v2.0</span>
+                        text-xs text-slate-600 flex justify-between items-center">
+          <span class="flex items-center gap-2">
+            Full Stock v2.0
+            ${isSuperAdmin()
+              ? `<span class="text-orange-400/70 border border-orange-900/40 rounded px-1.5 py-0.5
+                             text-[10px] font-semibold" title="Para salir del modo dev: ?dev=0">
+                   ⚙ Modo Dev
+                 </span>`
+              : ''}
+          </span>
           ${tenantSlug
-            ? `<span>API pública: <code class="text-slate-500">/api/v1/${escHtml(tenantSlug)}/collections/:slug</code></span>`
+            ? `<span>API: <code class="text-slate-500">/api/v1/${escHtml(tenantSlug)}/collections/:slug</code></span>`
             : ''}
         </footer>
       </div>
@@ -420,14 +637,14 @@ const App = (() => {
       showToast('Sesión cerrada.', 'info');
     });
 
-    navigate('builder');
+    navigate('catalog');
   }
 
   // ════════════════════════════════════════════════════════════
   // NAVEGACIÓN
   // ════════════════════════════════════════════════════════════
 
-  async function navigate(panelKey) {
+  async function navigate(panelKey, opts) {
     if (!PANELS[panelKey]) return;
     currentPanel = panelKey;
 
@@ -449,10 +666,19 @@ const App = (() => {
     `;
 
     try {
-      await PANELS[panelKey].module().render(panelDiv);
+      await PANELS[panelKey].module().render(panelDiv, opts || {});
     } catch (err) {
       panelDiv.innerHTML = `<p class="text-red-400">Error al cargar el panel: ${err.message || err}</p>`;
     }
+  }
+
+  /**
+   * Navega directamente al panel "Mis Productos" y selecciona
+   * automáticamente la colección indicada. Si autoOpenForm es true,
+   * abre el formulario de creación al instante.
+   */
+  function navigateToContent(slug, opts) {
+    navigate('content', Object.assign({ autoSelectSlug: slug }, opts || {}));
   }
 
   // ════════════════════════════════════════════════════════════
@@ -494,7 +720,7 @@ const App = (() => {
       .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
-  return { init, navigate, showLogin, showAuth, showToast };
+  return { init, navigate, navigateToContent, showLogin, showAuth, showToast };
 })();
 
 window.App = App;

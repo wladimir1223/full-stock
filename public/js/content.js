@@ -11,42 +11,53 @@ const Content = (() => {
 
   // ─── Render principal ──────────────────────────────────────────────────────
 
-  async function render(container) {
+  async function render(container, options) {
+    options = options || {};
     container.innerHTML = `
       <div class="flex gap-6 h-full">
         <aside class="w-56 shrink-0">
-          <h2 class="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-3">Colecciones</h2>
+          <h2 class="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-3">
+            Mis Categorías
+          </h2>
           <nav id="col-nav" class="space-y-1">
             <div class="text-slate-500 text-sm">Cargando…</div>
           </nav>
         </aside>
         <main class="flex-1 min-w-0" id="content-main">
           <div class="flex flex-col items-center justify-center h-64 text-slate-500">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-12 h-12 mb-3 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 6h16M4 10h16M4 14h16M4 18h8"/>
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-12 h-12 mb-3 opacity-30"
+                 fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                    d="M4 6h16M4 10h16M4 14h16M4 18h8"/>
             </svg>
-            <p>Selecciona una colección para gestionar su contenido.</p>
+            <p>Selecciona una categoría para ver y gestionar sus productos.</p>
           </div>
         </main>
       </div>
     `;
-    await loadCollectionNav(container);
+    await loadCollectionNav(container, options);
   }
 
   // ─── Sidebar ───────────────────────────────────────────────────────────────
 
-  async function loadCollectionNav(container) {
+  async function loadCollectionNav(container, options) {
+    options = options || {};
     const nav = container.querySelector('#col-nav');
     try {
       const { data } = await API.collections.list();
       if (data.length === 0) {
-        nav.innerHTML = '<p class="text-slate-500 text-sm">Sin colecciones.<br>Crea una en el Builder.</p>';
+        nav.innerHTML =
+          '<p class="text-slate-500 text-sm">Sin categorías.<br/>' +
+          'Ve a <strong class="text-slate-400">Mis Categorías</strong> para crear una.</p>';
         return;
       }
       nav.innerHTML = '';
+      let autoTarget = null;
       data.forEach(col => {
         const btn = document.createElement('button');
-        btn.className = 'w-full text-left px-3 py-2 rounded-lg text-sm text-slate-300 hover:bg-slate-700 hover:text-white transition nav-item';
+        btn.className =
+          'w-full text-left px-3 py-2 rounded-lg text-sm text-slate-300 ' +
+          'hover:bg-slate-700 hover:text-white transition nav-item';
         btn.dataset.slug = col.slug;
         btn.innerHTML = `
           <span class="block font-medium">${col.name}</span>
@@ -54,7 +65,14 @@ const Content = (() => {
         `;
         btn.addEventListener('click', () => selectCollection(container, col));
         nav.appendChild(btn);
+        if (options.autoSelectSlug && col.slug === options.autoSelectSlug) {
+          autoTarget = col;
+        }
       });
+      // Auto-seleccionar si viene desde Catalog
+      if (autoTarget) {
+        await selectCollection(container, autoTarget, options);
+      }
     } catch {
       nav.innerHTML = '<p class="text-red-400 text-sm">Error al cargar.</p>';
     }
@@ -70,17 +88,18 @@ const Content = (() => {
 
   // ─── Seleccionar colección ─────────────────────────────────────────────────
 
-  async function selectCollection(container, col) {
+  async function selectCollection(container, col, opts) {
     activeSlug   = col.slug;
     activeSchema = col;
     editingId    = null;
     setActiveNavItem(container, col.slug);
-    await renderTable(container);
+    await renderTable(container, opts || {});
   }
 
   // ─── Tabla ────────────────────────────────────────────────────────────────
 
-  async function renderTable(container) {
+  async function renderTable(container, opts) {
+    opts = opts || {};
     const main = container.querySelector('#content-main');
     main.innerHTML = '<div class="text-slate-400 text-sm">Cargando datos…</div>';
 
@@ -124,6 +143,12 @@ const Content = (() => {
 
       main.querySelector('#new-item-btn').addEventListener('click', () => openForm(main));
       bindRowActions(main, data);
+
+      // Si viene desde "Crear Nueva Categoría", abrir el form automáticamente
+      if (opts.autoOpenForm) {
+        openForm(main);
+        main.querySelector('#item-form-wrapper')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
     } catch {
       main.innerHTML = '<p class="text-red-400">Error al cargar los datos.</p>';
     }

@@ -143,4 +143,24 @@ function login(req, res) {
   return res.json(buildJWTResponse(user));
 }
 
-module.exports = { register, login };
+// ─── POST /auth/recover ───────────────────────────────────────────────────────
+// Siempre devuelve success: true para prevenir enumeración de emails.
+// En producción real enviaría un email con token firmado de un solo uso.
+
+function recover(req, res) {
+  const { email } = req.body;
+
+  if (!email || String(email).trim() === '') {
+    return res.status(400).json({ success: false, message: 'El email es obligatorio.' });
+  }
+
+  // Verificación interna (no revelamos si existe o no al cliente)
+  userDb.findByEmail(String(email).toLowerCase().trim());
+
+  // Retardo anti-fuerza-bruta + respuesta siempre exitosa
+  return setTimeout(() => {
+    res.json({ success: true });
+  }, 300);
+}
+
+module.exports = { register, login, recover };

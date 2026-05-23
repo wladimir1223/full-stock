@@ -3,170 +3,166 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Limonagrio — Tienda de Frutas</title>
+  <title>Café Benja — Peras Selectas</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
-  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <style>
-    * { font-family: 'Nunito', sans-serif; }
+    body          { font-family: 'Inter', sans-serif; }
+    .font-display { font-family: 'Playfair Display', serif; }
 
-    /* ── Carrito sidebar ─────────────────────────────────────── */
+    /* ── Cart sidebar slide ───────────────────────────────── */
     #cart-sidebar {
       transform: translateX(100%);
       transition: transform 0.38s cubic-bezier(0.4, 0, 0.2, 1);
     }
     #cart-sidebar.open { transform: translateX(0); }
-
     #cart-overlay {
-      opacity: 0;
-      pointer-events: none;
+      opacity: 0; pointer-events: none;
       transition: opacity 0.38s ease;
     }
-    #cart-overlay.visible {
-      opacity: 1;
-      pointer-events: all;
-    }
+    #cart-overlay.visible { opacity: 1; pointer-events: all; }
 
-    /* ── Product cards ────────────────────────────────────────── */
+    /* ── Product cards ────────────────────────────────────── */
     .product-card {
-      transition: transform .25s ease, box-shadow .25s ease;
+      transition: transform .28s ease, box-shadow .28s ease;
     }
     .product-card:hover {
-      transform: translateY(-6px);
-      box-shadow: 0 20px 40px rgba(0,0,0,.12);
+      transform: translateY(-8px);
+      box-shadow: 0 24px 48px rgba(61,35,20,.13);
     }
 
-    /* ── Skeleton shimmer ────────────────────────────────────── */
+    /* ── Skeleton shimmer ─────────────────────────────────── */
     .skeleton {
-      background: linear-gradient(90deg,#e5e7eb 25%,#f3f4f6 50%,#e5e7eb 75%);
+      background: linear-gradient(90deg,#e8e0d8 25%,#f5f0eb 50%,#e8e0d8 75%);
       background-size: 200% 100%;
       animation: shimmer 1.4s infinite;
       border-radius: .5rem;
     }
     @keyframes shimmer { to { background-position: -200% 0; } }
 
-    /* ── Badge pop ───────────────────────────────────────────── */
+    /* ── Badge pop ────────────────────────────────────────── */
     @keyframes badgePop {
       0%   { transform: scale(1); }
-      40%  { transform: scale(1.5); }
+      45%  { transform: scale(1.55); }
       100% { transform: scale(1); }
     }
     .badge-pop { animation: badgePop 0.25s ease; }
 
-    /* ── Toast ───────────────────────────────────────────────── */
-    @keyframes fadeUp {
-      from { opacity:0; transform:translate(-50%,14px); }
-      to   { opacity:1; transform:translate(-50%,0);    }
-    }
-    @keyframes fadeDown {
-      from { opacity:1; transform:translate(-50%,0);    }
-      to   { opacity:0; transform:translate(-50%,14px); }
-    }
+    /* ── Toast ────────────────────────────────────────────── */
+    @keyframes slideUp   { from{opacity:0;transform:translate(-50%,14px)} to{opacity:1;transform:translate(-50%,0)} }
+    @keyframes slideDown { from{opacity:1;transform:translate(-50%,0)}    to{opacity:0;transform:translate(-50%,14px)} }
 
-    /* ── API dot ─────────────────────────────────────────────── */
-    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
-    .dot-pulse { animation: pulse 1.5s infinite; }
-
-    /* ── Payment spinner ─────────────────────────────────────── */
+    /* ── Payment spinner ──────────────────────────────────── */
     @keyframes spin { to { transform: rotate(360deg); } }
     .pay-spinner {
-      width: 52px;
-      height: 52px;
-      border: 5px solid #dcfce7;
-      border-top-color: #16a34a;
+      width: 52px; height: 52px;
+      border: 5px solid #fdf0e0;
+      border-top-color: #d97706;
       border-radius: 50%;
       animation: spin 0.75s linear infinite;
     }
 
-    /* ── Checkmark draw ──────────────────────────────────────── */
-    @keyframes checkDraw {
-      from { stroke-dashoffset: 100; }
-      to   { stroke-dashoffset: 0;   }
-    }
+    /* ── Checkmark ────────────────────────────────────────── */
+    @keyframes checkDraw { from{stroke-dashoffset:100} to{stroke-dashoffset:0} }
     .check-path {
-      stroke-dasharray: 100;
-      stroke-dashoffset: 100;
+      stroke-dasharray: 100; stroke-dashoffset: 100;
       animation: checkDraw 0.55s ease forwards 0.15s;
     }
 
-    /* ── Hero ────────────────────────────────────────────────── */
-    .hero-wave {
-      background: linear-gradient(135deg,#16a34a 0%,#15803d 50%,#166534 100%);
+    /* ── API dot pulse ────────────────────────────────────── */
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
+    .dot-pulse { animation: pulse 1.5s infinite; }
+
+    /* ── Hero gradient overlay ────────────────────────────── */
+    .hero-bg {
+      background: linear-gradient(135deg, #1c0f08 0%, #3d2314 45%, #5c3317 100%);
     }
 
-    .badge-precio {
-      background: linear-gradient(135deg,#dc2626,#b91c1c);
+    /* ── Gold accent ──────────────────────────────────────── */
+    .text-gold   { color: #f5a623; }
+    .bg-gold     { background: #f5a623; }
+    .border-gold { border-color: #f5a623; }
+
+    /* ── Price tag ────────────────────────────────────────── */
+    .price-tag {
+      background: linear-gradient(135deg, #d97706, #b45309);
       color: #fff;
       font-size: .78rem;
       font-weight: 800;
-      padding: .3rem .85rem;
+      padding: .28rem .9rem;
       border-radius: 9999px;
-      letter-spacing: .03em;
+      letter-spacing: .04em;
       white-space: nowrap;
     }
 
-    .btn-comprar {
-      background: linear-gradient(135deg,#16a34a,#15803d);
+    /* ── Add to cart btn ──────────────────────────────────── */
+    .btn-cart {
+      background: linear-gradient(135deg, #3d2314, #5c3317);
       color: #fff;
       font-weight: 700;
-      font-size: .8rem;
+      font-size: .78rem;
       padding: .6rem 1rem;
       border-radius: 9999px;
       border: none;
       cursor: pointer;
       transition: opacity .15s, transform .1s;
-      letter-spacing: .03em;
+      letter-spacing: .04em;
       text-transform: uppercase;
       width: 100%;
     }
-    .btn-comprar:hover  { opacity: .88; transform: scale(1.02); }
-    .btn-comprar:active { transform: scale(.97); }
+    .btn-cart:hover  { opacity: .85; transform: scale(1.02); }
+    .btn-cart:active { transform: scale(.97); }
   </style>
 </head>
 
-<body class="bg-green-50 text-gray-800 min-h-screen">
+<body class="bg-amber-50 text-stone-800 min-h-screen">
 
-<!-- ════════════════════════════════════════════ FIXED NAV ══ -->
-<nav class="fixed top-0 left-0 right-0 z-50 bg-green-900/95 backdrop-blur-sm
-            border-b border-green-800 shadow-lg h-16 flex items-center">
-  <div class="w-full max-w-6xl mx-auto px-4 sm:px-6 flex items-center justify-between gap-3">
+<!-- ════════════════════════════════════════ FIXED NAVBAR ══ -->
+<nav class="fixed top-0 left-0 right-0 z-50 h-16
+            bg-stone-900/95 backdrop-blur-sm
+            border-b border-stone-800 shadow-lg">
+  <div class="max-w-6xl mx-auto px-4 sm:px-6 h-full
+              flex items-center justify-between gap-3">
 
     <!-- Logo -->
     <a href="#" class="flex items-center gap-2.5 shrink-0">
-      <span class="text-2xl leading-none">🍎</span>
-      <span class="text-white font-extrabold text-lg tracking-tight hidden sm:block">Limonagrio</span>
+      <span class="text-2xl leading-none select-none">🍐</span>
+      <div class="hidden sm:block leading-tight">
+        <span class="font-display text-white text-lg leading-none">Café Benja</span>
+        <span class="block text-stone-500 text-[10px] tracking-widest uppercase">Frutas Selectas</span>
+      </div>
     </a>
 
-    <!-- Links (desktop) -->
-    <div class="hidden md:flex items-center gap-6 text-sm font-semibold text-green-200/70">
+    <!-- Links desktop -->
+    <div class="hidden md:flex items-center gap-6 text-sm font-medium text-stone-400">
       <a href="#catalogo" class="hover:text-white transition">Catálogo</a>
       <a href="#nosotros" class="hover:text-white transition">Nosotros</a>
     </div>
 
-    <!-- Cart button -->
+    <!-- Cart zone -->
     <div class="flex items-center gap-3 ml-auto md:ml-0">
-      <!-- Total mini (desktop) -->
       <span id="cart-total-mini"
-            class="hidden sm:block text-yellow-300 font-extrabold text-sm leading-none opacity-0 transition-opacity duration-300">
+            class="hidden sm:block text-amber-400 font-extrabold text-sm
+                   opacity-0 transition-opacity duration-300 leading-none">
       </span>
 
       <button id="btn-cart" onclick="abrirCarrito()"
-              class="relative flex items-center gap-2 bg-white/10 hover:bg-white/20
-                     border border-white/20 text-white font-bold text-sm
+              class="relative flex items-center gap-2 bg-white/8 hover:bg-white/15
+                     border border-stone-700 text-white font-bold text-sm
                      px-4 py-2.5 rounded-full transition-all duration-200
                      hover:scale-105 active:scale-95">
-        <!-- Cart icon -->
-        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 shrink-0" fill="none"
+             viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                 d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.3 9M17 13l2.3 9
                    M9 21a1 1 0 100-2 1 1 0 000 2zm10 0a1 1 0 100-2 1 1 0 000 2z"/>
         </svg>
         <span class="hidden sm:inline">Carrito</span>
 
-        <!-- Badge -->
         <span id="cart-badge"
               class="absolute -top-2 -right-2 min-w-[22px] h-[22px] px-1.5
-                     bg-yellow-400 text-green-900 text-[11px] font-black rounded-full
+                     bg-amber-400 text-stone-900 text-[11px] font-black rounded-full
                      flex items-center justify-center shadow-sm scale-0 transition-transform duration-200">
           0
         </span>
@@ -175,76 +171,75 @@
 
   </div>
 </nav>
-<!-- ── END NAV ─────────────────────────────────────────────── -->
 
 
-<!-- ════════════════════════════════════════ CART OVERLAY ══ -->
+<!-- ══════════════════════════════════════ CART OVERLAY ══ -->
 <div id="cart-overlay" onclick="cerrarCarrito()"
-     class="fixed inset-0 bg-black/60 backdrop-blur-[2px] z-40"></div>
+     class="fixed inset-0 bg-black/65 backdrop-blur-[2px] z-40"></div>
 
 
-<!-- ════════════════════════════════════════ CART SIDEBAR ══ -->
+<!-- ══════════════════════════════════════ CART SIDEBAR ══ -->
 <aside id="cart-sidebar"
-       class="fixed top-0 right-0 h-[100dvh] w-full sm:w-[390px] bg-white z-50
-              shadow-2xl flex flex-col">
+       class="fixed top-0 right-0 h-[100dvh] w-full sm:w-[390px]
+              bg-white z-50 shadow-2xl flex flex-col">
 
-  <!-- Sidebar header -->
-  <div class="flex items-center justify-between px-5 py-4 bg-green-900 text-white shrink-0">
+  <!-- Header -->
+  <div class="flex items-center justify-between px-5 py-4
+              bg-stone-900 text-white shrink-0">
     <div class="flex items-center gap-2.5">
-      <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-yellow-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-amber-400" fill="none"
+           viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
               d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.3 9M17 13l2.3 9
                  M9 21a1 1 0 100-2 1 1 0 000 2zm10 0a1 1 0 100-2 1 1 0 000 2z"/>
       </svg>
       <h2 class="font-extrabold text-lg leading-none">Mi Carrito</h2>
-      <span id="sidebar-qty-badge"
-            class="bg-yellow-400 text-green-900 text-[11px] font-black px-2 py-0.5 rounded-full">
-        0
-      </span>
+      <span id="sidebar-qty"
+            class="bg-amber-400 text-stone-900 text-[11px] font-black
+                   px-2 py-0.5 rounded-full">0</span>
     </div>
     <button onclick="cerrarCarrito()"
-            class="text-green-200 hover:text-white hover:bg-white/10 p-1.5 rounded-full transition"
-            aria-label="Cerrar carrito">
-      <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            class="text-stone-400 hover:text-white hover:bg-white/10
+                   p-1.5 rounded-full transition" aria-label="Cerrar">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none"
+           viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M6 18L18 6M6 6l12 12"/>
       </svg>
     </button>
   </div>
 
-  <!-- Items scrollable list -->
-  <div id="cart-items-list" class="flex-1 overflow-y-auto py-4 px-4 space-y-3">
-    <!-- Populated by JS -->
-  </div>
+  <!-- Items list -->
+  <div id="cart-items" class="flex-1 overflow-y-auto py-4 px-4 space-y-3"></div>
 
-  <!-- Footer with total + CTA -->
+  <!-- Footer totales + CTA -->
   <div id="cart-footer"
-       class="hidden shrink-0 border-t border-gray-100 bg-white/95 backdrop-blur-sm px-5 py-4">
-    <!-- Desglose -->
+       class="hidden shrink-0 border-t border-stone-100 bg-white px-5 py-4">
     <div class="space-y-1.5 mb-4 text-sm">
-      <div class="flex justify-between text-gray-400">
+      <div class="flex justify-between text-stone-400">
         <span>Subtotal</span>
-        <span id="cart-subtotal">$0.00</span>
+        <span id="cart-sub">$0.00</span>
       </div>
-      <div class="flex justify-between text-gray-400">
+      <div class="flex justify-between text-stone-400">
         <span>Envío</span>
-        <span class="text-green-600 font-semibold">Gratis 🚚</span>
+        <span class="text-amber-600 font-semibold">Gratis 🚚</span>
       </div>
-      <div class="flex justify-between font-extrabold text-gray-900 text-base
-                  pt-2 border-t border-gray-100 mt-1">
+      <div class="flex justify-between font-extrabold text-stone-900 text-base
+                  pt-2 border-t border-stone-100">
         <span>Total</span>
-        <span id="cart-total-display" class="text-green-700">$0.00</span>
+        <span id="cart-total-display" class="text-amber-700">$0.00</span>
       </div>
     </div>
 
-    <!-- Pago CTA -->
     <button onclick="procederAlPago()"
-            class="w-full bg-gradient-to-r from-green-600 to-emerald-600
-                   hover:from-green-700 hover:to-emerald-700
+            class="w-full bg-gradient-to-r from-stone-800 to-stone-900
+                   hover:from-stone-900 hover:to-black
                    text-white font-extrabold text-base py-4 rounded-2xl
-                   shadow-lg shadow-green-200 transition-all duration-200
+                   shadow-lg shadow-stone-900/20 transition-all duration-200
                    hover:scale-[1.02] active:scale-[0.98]
                    flex items-center justify-center gap-2.5">
-      <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none"
+           viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
               d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2
                  2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
@@ -253,203 +248,224 @@
     </button>
 
     <button onclick="vaciarCarrito()"
-            class="w-full mt-2.5 text-red-400 hover:text-red-600 text-sm font-semibold
-                   py-2 transition-colors rounded-xl hover:bg-red-50/70">
+            class="w-full mt-2.5 text-red-400 hover:text-red-600 text-sm
+                   font-semibold py-2 transition-colors rounded-xl hover:bg-red-50/60">
       Vaciar carrito
     </button>
   </div>
 
 </aside>
-<!-- ── END SIDEBAR ─────────────────────────────────────────── -->
 
 
-<!-- ════════════════════════════════════════ PAYMENT MODAL ══ -->
-<div id="pay-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center px-4">
-  <!-- Backdrop -->
+<!-- ══════════════════════════════════════ PAYMENT MODAL ══ -->
+<div id="pay-modal"
+     class="hidden fixed inset-0 z-[60] flex items-center justify-center px-4">
   <div class="absolute inset-0 bg-black/75 backdrop-blur-sm"></div>
 
-  <!-- Card -->
-  <div class="relative bg-white rounded-3xl shadow-2xl w-full max-w-[360px] p-8 text-center z-10
-              transition-all duration-300">
+  <div class="relative bg-white rounded-3xl shadow-2xl w-full max-w-[360px]
+              p-8 text-center z-10">
 
-    <!-- Stage 1: Procesando -->
+    <!-- Procesando -->
     <div id="pay-loading">
       <div class="pay-spinner mx-auto mb-6"></div>
-      <h3 class="font-extrabold text-xl text-gray-900 mb-2">Procesando tu pago</h3>
-      <p class="text-gray-400 text-sm leading-relaxed">
+      <h3 class="font-extrabold text-xl text-stone-900 mb-2">Procesando tu pago</h3>
+      <p class="text-stone-400 text-sm leading-relaxed">
         Conectando con la pasarela de pago segura…
       </p>
-      <p class="text-gray-300 text-xs mt-1">No cierres esta ventana.</p>
-      <div class="flex items-center justify-center gap-4 mt-6 text-xs text-gray-300">
-        <span class="flex items-center gap-1">🔒 SSL 256-bit</span>
-        <span>·</span>
-        <span class="flex items-center gap-1">💳 PCI-DSS</span>
-        <span>·</span>
-        <span class="flex items-center gap-1">🛡️ 3D Secure</span>
+      <p class="text-stone-300 text-xs mt-1">No cierres esta ventana.</p>
+      <div class="flex items-center justify-center gap-4 mt-6 text-xs text-stone-300">
+        <span>🔒 SSL 256-bit</span><span>·</span>
+        <span>💳 PCI-DSS</span><span>·</span>
+        <span>🛡️ 3D Secure</span>
       </div>
     </div>
 
-    <!-- Stage 2: Éxito (hidden initially) -->
+    <!-- Éxito -->
     <div id="pay-success" class="hidden">
-      <!-- Checkmark circle -->
-      <div class="w-24 h-24 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-5">
+      <div class="w-24 h-24 bg-amber-50 rounded-full flex items-center
+                  justify-center mx-auto mb-5">
         <svg viewBox="0 0 60 60" class="w-14 h-14" fill="none"
-             stroke="#16a34a" stroke-width="4.5">
-          <circle cx="30" cy="30" r="26" stroke="#dcfce7" stroke-width="3"/>
+             stroke="#d97706" stroke-width="4.5">
+          <circle cx="30" cy="30" r="26" stroke="#fde68a" stroke-width="3"/>
           <polyline class="check-path" points="16,31 26,41 44,19"
                     stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </div>
-      <h3 class="font-extrabold text-2xl text-green-700 mb-1.5">¡Pago exitoso!</h3>
-      <p class="text-gray-500 text-sm leading-relaxed">
-        Tu pedido fue confirmado y está<br/>siendo preparado.
+      <h3 class="font-display font-bold text-2xl text-amber-700 mb-1.5">
+        ¡Pago exitoso!
+      </h3>
+      <p class="text-stone-500 text-sm leading-relaxed">
+        Tu pedido fue confirmado y está siendo preparado.
       </p>
-      <p class="text-gray-400 text-xs mt-1">
-        Entrega estimada: <strong class="text-gray-600">24 – 48 horas</strong>
+      <p class="text-stone-400 text-xs mt-1">
+        Entrega: <strong class="text-stone-600">24 – 48 horas</strong>
       </p>
-      <div id="pay-order-pill"
-           class="mt-5 bg-green-50 border border-green-100 rounded-2xl px-5 py-3
-                  text-sm text-green-800 font-extrabold tracking-wide">
+      <div id="pay-order"
+           class="mt-5 bg-amber-50 border border-amber-100 rounded-2xl
+                  px-5 py-3 text-sm text-amber-800 font-extrabold tracking-wide">
       </div>
-      <!-- Progress bar -->
-      <div class="mt-5 h-1 bg-gray-100 rounded-full overflow-hidden">
+      <div class="mt-5 h-1 bg-stone-100 rounded-full overflow-hidden">
         <div id="pay-progress"
-             class="h-full bg-green-400 rounded-full transition-all duration-[2500ms] ease-linear"
-             style="width:0%"></div>
+             class="h-full bg-amber-400 rounded-full transition-all
+                    duration-[2500ms] ease-linear" style="width:0%"></div>
       </div>
-      <p class="text-gray-300 text-xs mt-1.5">Cerrando automáticamente…</p>
+      <p class="text-stone-300 text-xs mt-1.5">Cerrando automáticamente…</p>
     </div>
 
   </div>
 </div>
-<!-- ── END PAYMENT MODAL ───────────────────────────────────── -->
 
 
-<!-- ══════════════════════════════════════ HERO (offset para navbar) ══ -->
+<!-- ══════════════════════════════════════════ HERO ══ -->
 <div class="pt-16">
-<header class="hero-wave text-white">
-  <div class="max-w-6xl mx-auto px-6">
+  <header class="hero-bg text-white relative overflow-hidden">
 
-    <!-- Topbar -->
-    <div class="flex items-center justify-between py-3 border-b border-white/10
-                text-xs text-green-200/70">
-      <span>🕗 Lun – Sáb: 7:00 – 20:00</span>
-      <span>📞 +1 800 LIMÓN</span>
+    <!-- Decoración fondo -->
+    <div class="absolute inset-0 pointer-events-none opacity-[.06]"
+         style="background-image:radial-gradient(circle at 20% 50%,#f5a623 0%,transparent 55%),
+                                 radial-gradient(circle at 80% 20%,#f5a623 0%,transparent 45%)">
     </div>
 
-    <!-- Logo + nav (hero) -->
-    <div class="flex flex-col sm:flex-row items-center justify-between py-6 gap-4">
-      <div class="flex items-center gap-4">
-        <div class="w-14 h-14 rounded-2xl bg-white/15 flex items-center justify-center
-                    text-3xl shadow-lg">🍎</div>
-        <div>
-          <h1 class="text-3xl font-extrabold leading-none tracking-tight">Limonagrio</h1>
-          <p class="text-green-200 text-sm font-semibold mt-0.5">
-            Frutas frescas · Del campo a tu mesa
-          </p>
+    <div class="relative max-w-6xl mx-auto px-6">
+
+      <!-- Topbar -->
+      <div class="flex items-center justify-between py-3
+                  border-b border-white/10 text-xs text-stone-400/70">
+        <span>🕗 Lun – Sáb: 8:00 – 20:00</span>
+        <span>📞 +1 800 BENJA</span>
+      </div>
+
+      <!-- Logo hero + nav -->
+      <div class="flex flex-col sm:flex-row items-center
+                  justify-between py-6 gap-4">
+        <div class="flex items-center gap-4">
+          <div class="w-14 h-14 rounded-2xl bg-white/10 border border-white/10
+                      flex items-center justify-center text-3xl shadow-lg
+                      backdrop-blur-sm">🍐</div>
+          <div>
+            <h1 class="font-display text-3xl text-white leading-none
+                       tracking-tight">Café Benja</h1>
+            <p class="text-amber-400/80 text-sm font-semibold mt-0.5">
+              Peras selectas · Del huerto a tu mesa
+            </p>
+          </div>
+        </div>
+        <nav class="flex items-center gap-5 text-sm font-medium text-stone-300/80">
+          <a href="#catalogo" class="hover:text-white transition">Catálogo</a>
+          <a href="#nosotros" class="hover:text-white transition">Nosotros</a>
+        </nav>
+      </div>
+
+      <!-- Hero copy -->
+      <div class="py-14 text-center">
+        <span class="inline-block bg-amber-400/15 text-amber-300 text-xs
+                     font-bold uppercase tracking-widest px-4 py-1.5
+                     rounded-full mb-5">
+          🌿 Cosecha de temporada
+        </span>
+        <h2 class="font-display text-4xl sm:text-5xl text-white
+                   leading-tight max-w-2xl mx-auto">
+          Las mejores peras,<br/>
+          <span class="text-amber-400">directo del huerto</span>
+        </h2>
+        <p class="text-stone-300/70 text-base mt-4 max-w-lg mx-auto
+                  leading-relaxed">
+          Seleccionamos cada pera con cuidado artesanal.
+          Sin ceras, sin intermediarios. Solo fruta de verdad.
+        </p>
+
+        <div class="flex flex-wrap items-center justify-center gap-5 mt-8 text-sm">
+          <span class="flex items-center gap-1.5 bg-white/8 rounded-full px-4 py-2 border border-white/10">
+            🚚 Envío gratis +$25
+          </span>
+          <span class="flex items-center gap-1.5 bg-white/8 rounded-full px-4 py-2 border border-white/10">
+            ✅ 100% orgánico
+          </span>
+          <span class="flex items-center gap-1.5 bg-white/8 rounded-full px-4 py-2 border border-white/10">
+            ❄️ Cadena de frío
+          </span>
         </div>
       </div>
-      <nav class="flex items-center gap-5 text-sm font-semibold text-green-100/80">
-        <a href="#catalogo" class="hover:text-white transition">Catálogo</a>
-        <a href="#nosotros" class="hover:text-white transition">Nosotros</a>
-      </nav>
-    </div>
 
-    <!-- Hero copy -->
-    <div class="py-12 text-center">
-      <span class="inline-block bg-yellow-400/20 text-yellow-300 text-xs font-bold
-                   uppercase tracking-widest px-4 py-1.5 rounded-full mb-4">
-        🌿 Cosecha de temporada
-      </span>
-      <h2 class="text-4xl sm:text-5xl font-extrabold leading-tight max-w-2xl mx-auto">
-        Las mejores manzanas,<br/>
-        <span class="text-yellow-300">directo del huerto</span>
-      </h2>
-      <p class="text-green-100/70 text-base mt-4 max-w-lg mx-auto leading-relaxed font-medium">
-        Seleccionamos cada pieza a mano. Sin ceras, sin químicos. Solo fruta de verdad.
-      </p>
-      <div class="flex flex-wrap items-center justify-center gap-5 mt-8 text-sm">
-        <span class="flex items-center gap-1.5 bg-white/10 rounded-full px-4 py-2">
-          🚚 Envío gratis +$20
-        </span>
-        <span class="flex items-center gap-1.5 bg-white/10 rounded-full px-4 py-2">
-          ✅ 100% orgánico
-        </span>
-        <span class="flex items-center gap-1.5 bg-white/10 rounded-full px-4 py-2">
-          ❄️ Cadena de frío
-        </span>
-      </div>
     </div>
+  </header>
+
+  <!-- Ola decorativa -->
+  <div style="background:#3d2314;line-height:0">
+    <svg viewBox="0 0 1440 60" xmlns="http://www.w3.org/2000/svg"
+         preserveAspectRatio="none">
+      <path d="M0,30 C360,60 1080,0 1440,30 L1440,60 L0,60 Z" fill="#fffbf5"/>
+    </svg>
   </div>
-</header>
-</div>
-
-<!-- Ola decorativa -->
-<div style="background:#16a34a;line-height:0">
-  <svg viewBox="0 0 1440 60" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
-    <path d="M0,30 C360,60 1080,0 1440,30 L1440,60 L0,60 Z" fill="#f0fdf4"/>
-  </svg>
 </div>
 
 
-<!-- ════════════════════════════════════════════ CATÁLOGO ══ -->
-<section id="catalogo" class="max-w-6xl mx-auto px-6 py-12">
+<!-- ════════════════════════════════════════ CATÁLOGO ══ -->
+<section id="catalogo" class="max-w-6xl mx-auto px-6 py-12"
+         style="background:#fffbf5">
 
-  <!-- Encabezado -->
+  <!-- Encabezado sección -->
   <div class="flex flex-col sm:flex-row items-start sm:items-center
-              justify-between mb-8 gap-3">
+              justify-between mb-10 gap-3">
     <div>
-      <h3 class="text-2xl font-extrabold text-gray-900">🍎 Nuestras Manzanas</h3>
-      <p class="text-gray-500 text-sm mt-1">
+      <h3 class="font-display text-2xl font-bold text-stone-900">
+        🍐 Nuestras Peras
+      </h3>
+      <p class="text-stone-400 text-sm mt-1">
         Contenido en vivo via
-        <code class="bg-green-100 text-green-700 px-1.5 py-0.5 rounded text-xs font-bold">
+        <code class="bg-amber-50 text-amber-700 border border-amber-200
+                     px-1.5 py-0.5 rounded text-xs font-bold">
           Full Stock API
         </code>
       </p>
     </div>
     <div id="api-status"
-         class="hidden flex items-center gap-2 text-xs text-gray-500
-                bg-white border border-gray-200 rounded-full px-3 py-1.5 shadow-sm">
-      <span id="api-dot" class="w-2 h-2 rounded-full bg-green-400 dot-pulse"></span>
+         class="hidden flex items-center gap-2 text-xs text-stone-500
+                bg-white border border-stone-200 rounded-full px-3 py-1.5 shadow-sm">
+      <span id="api-dot"
+            class="w-2 h-2 rounded-full bg-amber-400 dot-pulse"></span>
       <span id="api-text"></span>
     </div>
   </div>
 
-  <!-- Grid de productos -->
-  <div id="grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6"></div>
+  <!-- Grid -->
+  <div id="grid"
+       class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
+  </div>
 
   <!-- Error -->
   <div id="error-box"
-       class="hidden rounded-2xl border border-red-200 bg-red-50 p-10 text-center mt-4">
+       class="hidden rounded-2xl border border-red-200 bg-red-50 p-10
+              text-center mt-4">
     <div class="text-4xl mb-3">🍂</div>
     <p class="font-bold text-red-700 mb-1">No se pudo conectar con la API</p>
     <p id="error-msg" class="text-red-500 text-sm mb-4"></p>
-    <div class="text-gray-500 text-xs space-y-1">
+    <div class="text-stone-500 text-xs space-y-1">
       <p>Asegúrate de que Full Stock está corriendo:</p>
-      <code class="bg-gray-100 px-3 py-1 rounded-lg block w-fit mx-auto mt-1">
+      <code class="bg-stone-100 px-3 py-1 rounded-lg block w-fit mx-auto mt-1">
         node server.js
       </code>
       <p class="mt-2">
-        Y que existe el tenant <strong>limonagrio</strong>
-        con la colección <strong>manzanas</strong>.
+        Tenant: <strong>cafe-benja</strong> · Colección: <strong>peras</strong>
       </p>
     </div>
     <button onclick="cargar()"
-            class="mt-5 bg-red-600 text-white font-bold text-sm px-6 py-2 rounded-full
-                   hover:bg-red-700 transition">
+            class="mt-5 bg-red-600 text-white font-bold text-sm px-6 py-2
+                   rounded-full hover:bg-red-700 transition">
       Reintentar
     </button>
   </div>
 
   <!-- Vacío -->
   <div id="empty-box"
-       class="hidden rounded-2xl border border-green-200 bg-green-50 p-10 text-center mt-4">
+       class="hidden rounded-2xl border border-amber-200 bg-amber-50 p-10
+              text-center mt-4">
     <div class="text-4xl mb-3">📦</div>
-    <p class="font-bold text-green-800 mb-1">El catálogo está vacío</p>
-    <p class="text-green-600 text-sm">
-      Añade productos desde el panel de Full Stock y aparecerán aquí al instante.
+    <p class="font-bold text-amber-800 mb-1">El catálogo está vacío</p>
+    <p class="text-amber-600 text-sm">
+      Añade productos desde el panel de Full Stock y aparecerán aquí.
     </p>
-    <p class="text-gray-400 text-xs mt-3">
+    <p class="text-stone-400 text-xs mt-3">
       Panel: <code>http://localhost:3000</code>
     </p>
   </div>
@@ -457,238 +473,235 @@
 </section>
 
 
-<!-- ════════════════════════════════════════════ NOSOTROS ══ -->
-<section id="nosotros" class="bg-green-800 text-white py-16 mt-4">
+<!-- ══════════════════════════════════════════ NOSOTROS ══ -->
+<section id="nosotros" class="bg-stone-900 text-white py-16 mt-0">
   <div class="max-w-4xl mx-auto px-6 text-center">
-    <p class="text-green-300 text-xs font-bold uppercase tracking-widest mb-3">
+    <p class="text-amber-400/60 text-xs font-bold uppercase tracking-widest mb-3">
       Nuestra historia
     </p>
-    <h3 class="text-3xl font-extrabold mb-5">Cultivando desde 1987</h3>
-    <p class="text-green-100/80 leading-relaxed max-w-2xl mx-auto">
-      Somos una familia de agricultores del valle central. Tres generaciones cuidando
-      cada manzano para que tú recibas la fruta más fresca, sin intermediarios,
-      directamente desde nuestro huerto hasta tu puerta.
+    <h3 class="font-display text-3xl font-bold mb-5">
+      Cosechando desde 1991
+    </h3>
+    <p class="text-stone-300/80 leading-relaxed max-w-2xl mx-auto">
+      Somos Benjamín y su familia, cultivadores del valle andino.
+      Más de tres décadas eligiendo cada pera a mano para que llegue
+      a tu mesa con todo su sabor y sin químicos innecesarios.
     </p>
     <div class="grid grid-cols-3 gap-8 mt-10 max-w-xs mx-auto">
       <div>
-        <p class="text-3xl font-extrabold text-yellow-300">37+</p>
-        <p class="text-green-400 text-xs mt-1">Años</p>
+        <p class="font-display text-3xl font-bold text-amber-400">33+</p>
+        <p class="text-stone-500 text-xs mt-1">Años</p>
       </div>
       <div>
-        <p class="text-3xl font-extrabold text-yellow-300">12</p>
-        <p class="text-green-400 text-xs mt-1">Variedades</p>
+        <p class="font-display text-3xl font-bold text-amber-400">8</p>
+        <p class="text-stone-500 text-xs mt-1">Variedades</p>
       </div>
       <div>
-        <p class="text-3xl font-extrabold text-yellow-300">4.9</p>
-        <p class="text-green-400 text-xs mt-1">★ Rating</p>
+        <p class="font-display text-3xl font-bold text-amber-400">4.9</p>
+        <p class="text-stone-500 text-xs mt-1">★ Rating</p>
       </div>
     </div>
   </div>
 </section>
 
 
-<!-- ══════════════════════════════════════════════ FOOTER ══ -->
-<footer class="bg-gray-900 text-gray-400 py-8">
+<!-- ════════════════════════════════════════════ FOOTER ══ -->
+<footer class="bg-stone-950 text-stone-600 py-8">
   <div class="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row items-center
               justify-between gap-3 text-sm">
     <div class="flex items-center gap-2">
-      <span class="text-2xl">🍎</span>
-      <span class="font-extrabold text-white text-lg">Limonagrio</span>
-      <span class="text-gray-600 ml-2">· Frutas del Valle</span>
+      <span class="text-2xl">🍐</span>
+      <span class="font-display font-bold text-stone-300 text-lg">Café Benja</span>
+      <span class="text-stone-700 ml-2">· Peras Selectas</span>
     </div>
-    <p class="text-xs text-gray-600 text-center">
+    <p class="text-xs text-stone-700 text-center">
       Datos servidos por
-      <span class="text-green-500 font-bold">Full Stock</span> Headless CMS ·
-      <code class="text-gray-500">GET /api/v1/limonagrio/collections/manzanas</code>
+      <span class="text-amber-600 font-bold">Full Stock</span>
+      Gestor de Inventario ·
+      <code class="text-stone-600">
+        GET /api/v1/cafe-benja/collections/peras
+      </code>
     </p>
   </div>
 </footer>
 
 
-<!-- ══════════════════════════════════════════ JAVASCRIPT ══ -->
+<!-- ══════════════════════════════════════ JAVASCRIPT ══ -->
 <script>
-  // ── Config ──────────────────────────────────────────────────
-  const API_URL    = 'http://localhost:3000/api/v1/limonagrio/collections/manzanas';
-  const KEY_TITULO = 'manzana_roja';
-  const KEY_PRECIO = 'precio';
-  const KEY_IMAGEN = 'imagen';
-  const MONEDA     = '$';
-  const CART_KEY   = 'limonagrio_cart';
+  // ── Configuración ────────────────────────────────────────
+  const API_URL  = 'http://localhost:3000/api/v1/cafe-benja/collections/peras';
+  const K_NOMBRE = 'nombre';
+  const K_PRECIO = 'precio';
+  const K_DESC   = 'descripcion';
+  const K_IMAGEN = 'imagen';
+  const MONEDA   = '$';
+  const CART_KEY = 'cafebenja_cart';
 
-  // ── Estado global ────────────────────────────────────────────
-  window.productos = [];   // productos cargados desde la API
-  let cart = leerCartLocal();
+  // ── Estado global ─────────────────────────────────────────
+  window.productos = [];
+  let cart = leerCart();
 
-  // ─────────────────────────────────────────────────────────────
+  // ─────────────────────────────────────────────────────────
   // PERSISTENCIA
-  // ─────────────────────────────────────────────────────────────
-  function leerCartLocal() {
+  // ─────────────────────────────────────────────────────────
+  function leerCart() {
     try { return JSON.parse(localStorage.getItem(CART_KEY)) || []; }
     catch { return []; }
   }
-  function guardarCartLocal() {
+  function guardarCart() {
     localStorage.setItem(CART_KEY, JSON.stringify(cart));
   }
 
-  // ─────────────────────────────────────────────────────────────
-  // BADGE / TOTALES
-  // ─────────────────────────────────────────────────────────────
+  // ─────────────────────────────────────────────────────────
+  // BADGE Y TOTALES
+  // ─────────────────────────────────────────────────────────
   function actualizarBadge() {
-    const totalQty   = cart.reduce((s, i) => s + i.qty, 0);
-    const totalMoney = cart.reduce((s, i) => s + i.precio * i.qty, 0);
-
+    const qty   = cart.reduce((s, i) => s + i.qty, 0);
+    const money = cart.reduce((s, i) => s + i.precio * i.qty, 0);
     const badge = document.getElementById('cart-badge');
     const mini  = document.getElementById('cart-total-mini');
 
-    if (totalQty > 0) {
-      badge.textContent = totalQty > 99 ? '99+' : totalQty;
+    if (qty > 0) {
+      badge.textContent    = qty > 99 ? '99+' : qty;
       badge.style.transform = 'scale(1)';
       badge.classList.add('badge-pop');
       setTimeout(() => badge.classList.remove('badge-pop'), 300);
-
-      mini.textContent = MONEDA + totalMoney.toFixed(2);
+      mini.textContent  = fmt(money);
       mini.style.opacity = '1';
     } else {
       badge.style.transform = 'scale(0)';
-      mini.style.opacity = '0';
+      mini.style.opacity    = '0';
     }
   }
 
-  // ─────────────────────────────────────────────────────────────
-  // ABRIR / CERRAR SIDEBAR
-  // ─────────────────────────────────────────────────────────────
+  // ─────────────────────────────────────────────────────────
+  // SIDEBAR
+  // ─────────────────────────────────────────────────────────
   function abrirCarrito() {
-    renderizarCarrito();
+    renderCarrito();
     document.getElementById('cart-sidebar').classList.add('open');
     document.getElementById('cart-overlay').classList.add('visible');
     document.body.style.overflow = 'hidden';
   }
-
   function cerrarCarrito() {
     document.getElementById('cart-sidebar').classList.remove('open');
     document.getElementById('cart-overlay').classList.remove('visible');
     document.body.style.overflow = '';
   }
 
-  // ─────────────────────────────────────────────────────────────
-  // RENDER DEL SIDEBAR
-  // ─────────────────────────────────────────────────────────────
-  function renderizarCarrito() {
-    const list   = document.getElementById('cart-items-list');
+  // ─────────────────────────────────────────────────────────
+  // RENDER SIDEBAR
+  // ─────────────────────────────────────────────────────────
+  function renderCarrito() {
+    const list   = document.getElementById('cart-items');
     const footer = document.getElementById('cart-footer');
-    const badge  = document.getElementById('sidebar-qty-badge');
+    const badge  = document.getElementById('sidebar-qty');
+    const qty    = cart.reduce((s, i) => s + i.qty, 0);
+    const money  = cart.reduce((s, i) => s + i.precio * i.qty, 0);
 
-    const totalQty   = cart.reduce((s, i) => s + i.qty, 0);
-    const totalMoney = cart.reduce((s, i) => s + i.precio * i.qty, 0);
+    badge.textContent = qty;
 
-    badge.textContent = totalQty;
-
-    // ── Estado vacío ─────────────────────────────────────────
     if (cart.length === 0) {
       footer.classList.add('hidden');
       list.innerHTML = `
-        <div class="flex flex-col items-center justify-center h-full text-center py-20">
+        <div class="flex flex-col items-center justify-center h-full
+                    text-center py-20">
           <span class="text-6xl mb-4 select-none">🛒</span>
-          <p class="font-extrabold text-gray-700 text-lg">Tu carrito está vacío</p>
-          <p class="text-gray-400 text-sm mt-2 max-w-[200px]">
-            Añade tus manzanas favoritas al carrito
+          <p class="font-extrabold text-stone-700 text-lg">Tu carrito está vacío</p>
+          <p class="text-stone-400 text-sm mt-2 max-w-[200px]">
+            Añade tus peras favoritas al carrito
           </p>
           <button onclick="cerrarCarrito()"
-                  class="mt-6 bg-green-600 text-white font-bold text-sm
-                         px-6 py-2.5 rounded-full hover:bg-green-700 transition">
+                  class="mt-6 bg-stone-800 text-white font-bold text-sm
+                         px-6 py-2.5 rounded-full hover:bg-stone-700 transition">
             Ver catálogo
           </button>
         </div>`;
       return;
     }
 
-    // ── Hay items ────────────────────────────────────────────
     footer.classList.remove('hidden');
-
-    document.getElementById('cart-subtotal').textContent    = fmt(totalMoney);
-    document.getElementById('cart-total-display').textContent = fmt(totalMoney);
-
+    document.getElementById('cart-sub').textContent           = fmt(money);
+    document.getElementById('cart-total-display').textContent = fmt(money);
     list.innerHTML = '';
 
     cart.forEach((item, idx) => {
       const div = document.createElement('div');
-      div.className = 'flex items-start gap-3 bg-gray-50 hover:bg-gray-100/80 ' +
-                      'rounded-2xl p-3 transition-colors duration-150';
+      div.className =
+        'flex items-start gap-3 bg-stone-50 hover:bg-stone-100/80 ' +
+        'rounded-2xl p-3 transition-colors duration-150';
 
-      // Imagen
       const imgHTML = item.imagen
         ? `<img src="${xss(item.imagen)}" alt="${xss(item.nombre)}"
                 class="w-full h-full object-cover"
-                onerror="this.parentElement.innerHTML='<span class=\\'text-2xl\\'>🍎</span>'">`
-        : '<span class="text-2xl">🍎</span>';
+                onerror="this.parentElement.innerHTML='<span class=\\'text-2xl\\'>🍐</span>'">`
+        : '<span class="text-2xl">🍐</span>';
 
       div.innerHTML = `
         <!-- Thumbnail -->
-        <div class="w-[60px] h-[60px] rounded-xl overflow-hidden bg-white border
-                    border-gray-100 flex items-center justify-center shrink-0 shadow-sm">
+        <div class="w-[62px] h-[62px] rounded-xl overflow-hidden bg-white
+                    border border-stone-100 flex items-center justify-center
+                    shrink-0 shadow-sm">
           ${imgHTML}
         </div>
-
-        <!-- Info + controles -->
+        <!-- Info -->
         <div class="flex-1 min-w-0">
-          <p class="font-bold text-gray-900 text-sm leading-snug line-clamp-2 pr-1">
+          <p class="font-bold text-stone-900 text-sm leading-snug line-clamp-2 pr-1">
             ${xss(item.nombre)}
           </p>
-          <p class="text-green-600 font-extrabold text-sm mt-0.5">
-            ${fmt(item.precio)} <span class="text-gray-300 font-normal">c/u</span>
+          <p class="text-amber-700 font-extrabold text-sm mt-0.5">
+            ${fmt(item.precio)}
+            <span class="text-stone-300 font-normal text-xs">c/u</span>
           </p>
-
-          <!-- Controles de cantidad -->
+          <!-- Cantidad -->
           <div class="flex items-center gap-2 mt-2">
             <button onclick="cambiarQty(${idx}, -1)"
-                    class="w-7 h-7 rounded-full bg-white border border-gray-200
-                           text-gray-700 font-bold text-lg flex items-center justify-center
-                           hover:bg-gray-100 active:scale-90 transition leading-none">
-              −
-            </button>
-            <span class="font-extrabold text-gray-900 text-sm min-w-[20px] text-center">
-              ${item.qty}
-            </span>
+                    class="w-7 h-7 rounded-full bg-white border border-stone-200
+                           text-stone-700 font-bold text-lg flex items-center
+                           justify-center hover:bg-stone-100 active:scale-90
+                           transition leading-none">−</button>
+            <span class="font-extrabold text-stone-900 text-sm min-w-[20px]
+                         text-center">${item.qty}</span>
             <button onclick="cambiarQty(${idx}, +1)"
-                    class="w-7 h-7 rounded-full bg-green-600 text-white font-bold text-lg
-                           flex items-center justify-center hover:bg-green-700
-                           active:scale-90 transition leading-none">
-              +
-            </button>
+                    class="w-7 h-7 rounded-full bg-stone-800 text-white font-bold
+                           text-lg flex items-center justify-center
+                           hover:bg-stone-700 active:scale-90 transition
+                           leading-none">+</button>
           </div>
         </div>
-
         <!-- Subtotal + eliminar -->
-        <div class="flex flex-col items-end justify-between gap-2 shrink-0 self-stretch py-0.5">
-          <p class="font-extrabold text-gray-900 text-sm">${fmt(item.precio * item.qty)}</p>
+        <div class="flex flex-col items-end justify-between gap-2
+                    shrink-0 self-stretch py-0.5">
+          <p class="font-extrabold text-stone-900 text-sm">
+            ${fmt(item.precio * item.qty)}
+          </p>
           <button onclick="quitarItem(${idx})"
-                  class="text-red-300 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-full
-                         transition-colors" title="Eliminar">
+                  class="text-red-300 hover:text-red-500 hover:bg-red-50
+                         p-1.5 rounded-full transition-colors" title="Eliminar">
             <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none"
                  viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858
-                       L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995
+                       -1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1
+                       1v3M4 7h16"/>
             </svg>
           </button>
-        </div>`;
-
+        </div>
+      `;
       list.appendChild(div);
     });
   }
 
-  // ─────────────────────────────────────────────────────────────
-  // OPERACIONES DEL CARRITO
-  // ─────────────────────────────────────────────────────────────
-
-  /** Llamado desde el botón de cada tarjeta: agregarAlCarrito(index) */
+  // ─────────────────────────────────────────────────────────
+  // OPERACIONES CARRITO
+  // ─────────────────────────────────────────────────────────
   function agregarAlCarrito(idx) {
     const p = window.productos[idx];
     if (!p) return;
 
-    const nombre = String(p[KEY_TITULO] || 'Manzana');
-    const precio = Number(p[KEY_PRECIO] || 0);
-    const raw    = p[KEY_IMAGEN] || '';
+    const nombre = String(p[K_NOMBRE] || 'Pera');
+    const precio = Number(p[K_PRECIO] || 0);
+    const raw    = p[K_IMAGEN] || '';
     const imagen = raw && raw.startsWith('/') ? 'http://localhost:3000' + raw : raw;
 
     const existing = cart.find(i => i.nombre === nombre);
@@ -698,14 +711,11 @@
       cart.push({ nombre, precio, imagen, qty: 1 });
     }
 
-    guardarCartLocal();
+    guardarCart();
     actualizarBadge();
-
-    // Si el sidebar está abierto, re-renderizar en tiempo real
     if (document.getElementById('cart-sidebar').classList.contains('open')) {
-      renderizarCarrito();
+      renderCarrito();
     }
-
     toast('🛒 ' + nombre + ' añadida al carrito');
   }
 
@@ -713,35 +723,34 @@
     if (!cart[idx]) return;
     cart[idx].qty += delta;
     if (cart[idx].qty <= 0) cart.splice(idx, 1);
-    guardarCartLocal();
+    guardarCart();
     actualizarBadge();
-    renderizarCarrito();
+    renderCarrito();
   }
 
   function quitarItem(idx) {
-    const nombre = cart[idx] ? cart[idx].nombre : '';
+    const nombre = cart[idx]?.nombre || '';
     cart.splice(idx, 1);
-    guardarCartLocal();
+    guardarCart();
     actualizarBadge();
-    renderizarCarrito();
+    renderCarrito();
     if (nombre) toast('🗑 ' + nombre + ' eliminada');
   }
 
   function vaciarCarrito() {
-    if (cart.length === 0) return;
-    if (!confirm('¿Vaciar el carrito? Se perderán todos los productos.')) return;
+    if (!cart.length) return;
+    if (!confirm('¿Vaciar el carrito?')) return;
     cart = [];
-    guardarCartLocal();
+    guardarCart();
     actualizarBadge();
-    renderizarCarrito();
+    renderCarrito();
   }
 
-  // ─────────────────────────────────────────────────────────────
-  // PASARELA DE PAGO (simulada)
-  // ─────────────────────────────────────────────────────────────
+  // ─────────────────────────────────────────────────────────
+  // PAGO
+  // ─────────────────────────────────────────────────────────
   function procederAlPago() {
-    if (cart.length === 0) return;
-
+    if (!cart.length) return;
     cerrarCarrito();
 
     const modal   = document.getElementById('pay-modal');
@@ -749,74 +758,66 @@
     const success = document.getElementById('pay-success');
     const progress= document.getElementById('pay-progress');
 
-    // Resetear estado
     loading.classList.remove('hidden');
     success.classList.add('hidden');
     progress.style.width = '0%';
     modal.classList.remove('hidden');
     document.body.style.overflow = 'hidden';
 
-    // Simular procesamiento: 2.2 s
     setTimeout(() => {
       loading.classList.add('hidden');
       success.classList.remove('hidden');
 
-      // Generar número de orden
-      const orderNum = 'LMG-' + Math.random().toString(36).substr(2, 6).toUpperCase();
-      document.getElementById('pay-order-pill').textContent = '📦 Orden #' + orderNum;
+      const order = 'BNJ-' + Math.random().toString(36).substr(2,6).toUpperCase();
+      document.getElementById('pay-order').textContent = '📦 Orden #' + order;
 
-      // Limpiar carrito
       cart = [];
-      guardarCartLocal();
+      guardarCart();
       actualizarBadge();
 
-      // Barra de progreso auto-cierre
       requestAnimationFrame(() => { progress.style.width = '100%'; });
 
-      // Cerrar modal automáticamente en 2.8 s
       setTimeout(() => {
         modal.classList.add('hidden');
         document.body.style.overflow = '';
-        toast('✅ Pedido #' + orderNum + ' confirmado — ¡Gracias por tu compra!');
+        toast('✅ Pedido #' + order + ' confirmado — ¡Gracias por comprar en Café Benja!');
       }, 2800);
     }, 2200);
   }
 
-  // ─────────────────────────────────────────────────────────────
+  // ─────────────────────────────────────────────────────────
   // TOAST
-  // ─────────────────────────────────────────────────────────────
+  // ─────────────────────────────────────────────────────────
   function toast(msg) {
-    // Eliminar toast anterior si existe
-    const prev = document.querySelector('.lm-toast');
+    const prev = document.querySelector('.cb-toast');
     if (prev) {
-      prev.style.animation = 'fadeDown .2s ease forwards';
+      prev.style.animation = 'slideDown .2s ease forwards';
       setTimeout(() => prev.remove(), 200);
     }
-
     const el = document.createElement('div');
-    el.className = 'lm-toast';
+    el.className = 'cb-toast';
     el.style.cssText =
       'position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);' +
-      'background:#166534;color:#fff;font-size:.85rem;font-weight:700;' +
+      'background:#3d2314;color:#fff;font-size:.85rem;font-weight:700;' +
       'padding:.75rem 1.5rem;border-radius:9999px;' +
-      'box-shadow:0 8px 24px rgba(0,0,0,.25);' +
-      'z-index:9999;white-space:nowrap;max-width:calc(100vw - 2rem);' +
-      'text-align:center;animation:fadeUp .25s ease;';
+      'box-shadow:0 8px 24px rgba(0,0,0,.25);z-index:9999;' +
+      'white-space:nowrap;max-width:calc(100vw - 2rem);' +
+      'text-align:center;animation:slideUp .25s ease;';
     el.textContent = msg;
     document.body.appendChild(el);
     setTimeout(() => {
       if (el.parentNode) {
-        el.style.animation = 'fadeDown .25s ease forwards';
+        el.style.animation = 'slideDown .25s ease forwards';
         setTimeout(() => el.remove(), 250);
       }
     }, 2800);
   }
 
-  // ─────────────────────────────────────────────────────────────
-  // API — CARGA DE PRODUCTOS
-  // ─────────────────────────────────────────────────────────────
+  // ─────────────────────────────────────────────────────────
+  // FETCH API
+  // ─────────────────────────────────────────────────────────
   document.addEventListener('DOMContentLoaded', () => {
-    actualizarBadge(); // Restaurar badge desde localStorage al cargar
+    actualizarBadge();
     cargar();
   });
 
@@ -828,72 +829,88 @@
       const json = await res.json();
       if (!json.success) throw new Error(json.message || 'Respuesta inesperada.');
       window.productos = json.data || [];
-      setStatus(true, json.total + ' productos · Full Stock SaaS');
+      setStatus(true, json.total + ' productos · Full Stock');
       renderGrid(window.productos);
     } catch (err) {
       ocultarSkeletons();
       document.getElementById('error-box').classList.remove('hidden');
       document.getElementById('error-msg').textContent = err.message || 'Error de red.';
-      setStatus(false, 'Sin conexión con la API');
+      setStatus(false, 'Sin conexión');
     }
   }
 
-  // ─────────────────────────────────────────────────────────────
-  // RENDER GRID DE TARJETAS
-  // ─────────────────────────────────────────────────────────────
+  // ─────────────────────────────────────────────────────────
+  // RENDER GRID
+  // ─────────────────────────────────────────────────────────
   function renderGrid(items) {
     const grid = document.getElementById('grid');
     grid.innerHTML = '';
 
-    if (items.length === 0) {
+    if (!items.length) {
       document.getElementById('empty-box').classList.remove('hidden');
       return;
     }
 
     items.forEach((item, i) => {
-      const titulo = xss(String(item[KEY_TITULO] || 'Manzana'));
-      const precio = item[KEY_PRECIO] != null ? Number(item[KEY_PRECIO]).toFixed(2) : null;
-      const imgRaw = item[KEY_IMAGEN] || '';
+      const nombre = xss(String(item[K_NOMBRE] || 'Pera'));
+      const precio = item[K_PRECIO] != null ? Number(item[K_PRECIO]).toFixed(2) : null;
+      const desc   = xss(String(item[K_DESC]   || ''));
+      const imgRaw = item[K_IMAGEN] || '';
       const imgSrc = imgRaw && imgRaw.startsWith('/')
                      ? 'http://localhost:3000' + imgRaw : imgRaw;
 
       const card = document.createElement('article');
-      card.className = 'product-card rounded-2xl overflow-hidden bg-white ' +
-                       'shadow-sm border border-gray-100';
+      card.className =
+        'product-card bg-white rounded-2xl overflow-hidden ' +
+        'shadow-sm border border-stone-100/80';
 
       card.innerHTML =
-        // Imagen
+        // ── Imagen ──────────────────────────────────────────
         (imgSrc
-          ? '<div class="overflow-hidden h-56 bg-gray-100">' +
-              '<img src="' + xss(imgSrc) + '" alt="' + titulo + '"' +
-              ' class="w-full h-full object-cover transition duration-500 hover:scale-110"' +
-              ' loading="lazy"' +
-              ' onerror="this.parentElement.innerHTML=\'<div class=\\\"h-56 bg-gradient-to-br' +
-              ' from-green-50 to-emerald-100 flex items-center justify-center text-6xl\\\">🍎</div>\'"' +
-              '/></div>'
-          : '<div class="h-56 bg-gradient-to-br from-green-50 to-emerald-100' +
-            ' flex items-center justify-center text-6xl">🍎</div>'
+          ? `<div class="overflow-hidden h-52 bg-stone-100">
+               <img src="${xss(imgSrc)}" alt="${nombre}"
+                 class="w-full h-full object-cover transition duration-500 hover:scale-110"
+                 loading="lazy"
+                 onerror="this.parentElement.innerHTML='<div class=\\'h-52 bg-gradient-to-br from-amber-50 to-stone-100 flex items-center justify-center text-6xl\\'>🍐</div>'"
+               />
+             </div>`
+          : `<div class="h-52 bg-gradient-to-br from-amber-50 to-stone-100
+                         flex items-center justify-center text-6xl">🍐</div>`
         ) +
-        // Cuerpo
-        '<div class="p-5">' +
-          '<div class="flex items-start justify-between gap-2 mb-2.5">' +
-            '<h4 class="font-extrabold text-gray-900 text-base leading-tight">' +
-              titulo +
-            '</h4>' +
-            (precio !== null
-              ? '<span class="badge-precio shrink-0">' + MONEDA + precio + '</span>'
-              : '') +
-          '</div>' +
-          '<div class="flex items-center gap-1 text-yellow-400 text-xs mb-3">' +
-            '★★★★★ <span class="text-gray-400 ml-1">· Fresca</span>' +
-          '</div>' +
-          '<button class="btn-comprar" onclick="agregarAlCarrito(' + i + ')">' +
-            '🛒 Añadir al carrito' +
-          '</button>' +
-        '</div>';
+        // ── Cuerpo ───────────────────────────────────────────
+        `<div class="p-5">
+           <!-- Nombre + precio -->
+           <div class="flex items-start justify-between gap-2 mb-2">
+             <h4 class="font-bold text-stone-900 text-[0.95rem] leading-tight flex-1">
+               ${nombre}
+             </h4>
+             ${precio !== null
+               ? `<span class="price-tag shrink-0">${MONEDA}${precio}</span>`
+               : ''}
+           </div>
+
+           <!-- Descripción -->
+           ${desc
+             ? `<p class="text-stone-400 text-xs leading-relaxed mb-3 line-clamp-2">
+                  ${desc}
+                </p>`
+             : '<div class="mb-3"></div>'}
+
+           <!-- Stars -->
+           <div class="flex items-center gap-1 text-amber-400 text-xs mb-3">
+             ★★★★★
+             <span class="text-stone-300 ml-1">· Fresca</span>
+           </div>
+
+           <!-- Botón -->
+           <button class="btn-cart" onclick="agregarAlCarrito(${i})">
+             🛒 Añadir al carrito
+           </button>
+         </div>`;
 
       // Animación de entrada escalonada
-      card.style.cssText += ';opacity:0;transform:translateY(16px);' +
+      card.style.cssText +=
+        ';opacity:0;transform:translateY(16px);' +
         'transition:opacity .4s ease,transform .4s ease;' +
         'transition-delay:' + (i * 70) + 'ms';
       grid.appendChild(card);
@@ -904,27 +921,30 @@
     });
   }
 
-  // ─────────────────────────────────────────────────────────────
-  // UTILIDADES UI
-  // ─────────────────────────────────────────────────────────────
+  // ─────────────────────────────────────────────────────────
+  // UI HELPERS
+  // ─────────────────────────────────────────────────────────
   function ocultarEstados() {
     document.getElementById('error-box').classList.add('hidden');
     document.getElementById('empty-box').classList.add('hidden');
   }
 
   function mostrarSkeletons() {
-    document.getElementById('grid').innerHTML = Array(6).fill(
-      '<div class="rounded-2xl overflow-hidden bg-white shadow-sm">' +
-      '<div class="skeleton h-56 w-full rounded-none"></div>' +
+    document.getElementById('grid').innerHTML = Array(8).fill(
+      '<div class="rounded-2xl overflow-hidden bg-white shadow-sm border border-stone-100">' +
+      '<div class="skeleton h-52 w-full rounded-none"></div>' +
       '<div class="p-4 space-y-2">' +
       '<div class="skeleton h-4 w-3/4"></div>' +
-      '<div class="skeleton h-3 w-1/3"></div>' +
-      '<div class="skeleton h-8 w-full mt-2"></div>' +
+      '<div class="skeleton h-3 w-full"></div>' +
+      '<div class="skeleton h-3 w-2/3"></div>' +
+      '<div class="skeleton h-8 w-full mt-3"></div>' +
       '</div></div>'
     ).join('');
   }
 
-  function ocultarSkeletons() { document.getElementById('grid').innerHTML = ''; }
+  function ocultarSkeletons() {
+    document.getElementById('grid').innerHTML = '';
+  }
 
   function setStatus(ok, msg) {
     const box  = document.getElementById('api-status');
@@ -932,14 +952,12 @@
     const text = document.getElementById('api-text');
     box.classList.remove('hidden');
     dot.className = 'w-2 h-2 rounded-full ' +
-      (ok ? 'bg-green-400 dot-pulse' : 'bg-red-400');
+      (ok ? 'bg-amber-400 dot-pulse' : 'bg-red-400');
     text.textContent = msg;
   }
 
-  /** Formatear moneda */
   function fmt(n) { return MONEDA + Number(n).toFixed(2); }
 
-  /** Escapar HTML para evitar XSS */
   function xss(s) {
     return String(s)
       .replace(/&/g,'&amp;').replace(/</g,'&lt;')

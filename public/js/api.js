@@ -1,5 +1,5 @@
 /**
- * api.js — Capa de comunicación con Full Stock SaaS backend.
+ * api.js — Capa de comunicación con Full Stock backend.
  *
  * Auth (localStorage):
  *   fs_token       → JWT
@@ -98,6 +98,10 @@ var API = {
     logout: function() {
       Auth.clear();
       return Promise.resolve({ success: true });
+    },
+    // Solicitud de recuperación de contraseña
+    recover: function(email) {
+      return request('POST', '/auth/recover', { email: email });
     },
   },
   collections: {
