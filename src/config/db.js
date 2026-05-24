@@ -7,6 +7,12 @@
  */
 
 const mongoose = require('mongoose');
+const dns      = require('dns');
+
+// En algunos entornos Windows/ISP el resolver del sistema no soporta
+// consultas SRV desde Node.js. Forzar Google DNS soluciona el problema.
+// En producción (Render/Linux) esto es un no-op seguro.
+dns.setServers(['8.8.8.8', '1.1.1.1']);
 
 async function connectDB() {
   const uri = process.env.MONGODB_URI;
