@@ -45,4 +45,20 @@ const apiLimiter = rateLimit({
   },
 });
 
-module.exports = { authLimiter, apiLimiter };
+// ─── Checkout limiter ─────────────────────────────────────────────────────────
+// Protege el endpoint público de compra contra bots que vacíen el stock.
+// Máx. 5 checkouts por IP cada 10 minutos.
+
+const checkoutLimiter = rateLimit({
+  windowMs:        10 * 60 * 1000, // 10 minutos
+  max:             5,
+  standardHeaders: true,
+  legacyHeaders:   false,
+  message: {
+    success: false,
+    code:    'TOO_MANY_CHECKOUTS',
+    message: 'Demasiadas compras desde esta IP. Espera 10 minutos e intenta de nuevo.',
+  },
+});
+
+module.exports = { authLimiter, apiLimiter, checkoutLimiter };

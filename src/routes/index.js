@@ -39,8 +39,9 @@ const Collection = require('../models/Collection');
 const Item       = require('../models/Item');
 const upload     = require('../middleware/upload');
 const cloudinary = require('../config/cloudinary');
-const { requireAuth }              = require('../middleware/auth');
-const { authLimiter }              = require('../middleware/security');
+const { requireAuth }                        = require('../middleware/auth');
+const { authLimiter, checkoutLimiter }       = require('../middleware/security');
+const storeCtrl                              = require('../controllers/storeController');
 
 // ════════════════════════════════════════════════════════════════
 // AUTH — Registro, Login y Recuperación
@@ -115,6 +116,19 @@ router.get('/api/v1/:tenant_slug/collections/:collection_slug', async function (
     res.status(500).json({ success: false, message: 'Error de servidor.' });
   }
 });
+
+// ════════════════════════════════════════════════════════════════
+// STORE — API pública de tienda (sin JWT)
+// ════════════════════════════════════════════════════════════════
+
+// GET /api/v1/store/:tenantSlug/products
+//   Catálogo completo agrupado por colección, con stock actual.
+router.get('/api/v1/store/:tenantSlug/products', storeCtrl.catalog);
+
+// POST /api/v1/store/:tenantSlug/checkout
+//   Procesa una compra: valida stock total → descuenta atómicamente.
+//   Protegido con checkoutLimiter: máx. 5 compras por IP cada 10 minutos.
+router.post('/api/v1/store/:tenantSlug/checkout', checkoutLimiter, storeCtrl.checkout);
 
 // ════════════════════════════════════════════════════════════════
 // ADMIN — Colecciones (protegido)
