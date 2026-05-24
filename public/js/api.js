@@ -7,8 +7,9 @@
  *   fs_email       → email del usuario
  *   fs_name        → nombre del negocio / tenant
  *   fs_slug        → tenant slug (usado en la URL pública de la API)
+ *   fs_role        → rol del usuario ('tenant' | 'superadmin')
  *
- * Todos los requests a /admin/* incluyen "Authorization: Bearer <jwt>".
+ * Todos los requests a /admin/* y /api/v1/superadmin/* incluyen "Authorization: Bearer <jwt>".
  * Un 401 limpia la sesión y redirige al login automáticamente.
  */
 
@@ -30,6 +31,7 @@ const Auth = {
         if (payload.email)      localStorage.setItem('fs_email',   payload.email);
         if (payload.name)       localStorage.setItem('fs_name',    payload.name);
         if (payload.tenantSlug) localStorage.setItem('fs_slug',    payload.tenantSlug);
+        if (payload.role)       localStorage.setItem('fs_role',    payload.role);
       }
     } catch (_) {}
   },
@@ -38,6 +40,7 @@ const Auth = {
   getEmail:       function() { return localStorage.getItem('fs_email')   || ''; },
   getName:        function() { return localStorage.getItem('fs_name')    || ''; },
   getTenantSlug:  function() { return localStorage.getItem('fs_slug')    || ''; },
+  getRole:        function() { return localStorage.getItem('fs_role')    || 'tenant'; },
 
   // Compatibilidad: getUser devuelve el nombre del negocio
   getUser: function() { return this.getName(); },
@@ -49,7 +52,7 @@ const Auth = {
   },
   isLoggedIn: function() { return !!this.getToken() && !this.isExpired(); },
   clear: function() {
-    ['fs_token', 'fs_expires', 'fs_email', 'fs_name', 'fs_slug'].forEach(function(k) {
+    ['fs_token', 'fs_expires', 'fs_email', 'fs_name', 'fs_slug', 'fs_role'].forEach(function(k) {
       localStorage.removeItem(k);
     });
   },
@@ -60,7 +63,7 @@ const Auth = {
 async function request(method, endpoint, body, isFormData) {
   var headers = {};
 
-  if (endpoint.startsWith('/admin')) {
+  if (endpoint.startsWith('/admin') || endpoint.startsWith('/api/v1/superadmin')) {
     var token = Auth.getToken();
     if (token) headers['Authorization'] = 'Bearer ' + token;
   }
@@ -119,6 +122,16 @@ var API = {
     sell:   function(slug, id, quantity)  { return request('POST',   '/admin/collections/' + slug + '/items/' + id + '/sell', { quantity: quantity }); },
   },
   upload: function(formData) { return request('POST', '/admin/upload', formData, true); },
+  superadmin: {
+    logs: function(limit, tenant) {
+      var url = '/api/v1/superadmin/logs?limit=' + (limit || 100);
+      if (tenant) url += '&tenant=' + encodeURIComponent(tenant);
+      return request('GET', url);
+    },
+    tenants: function() {
+      return request('GET', '/api/v1/superadmin/tenants');
+    },
+  },
 };
 
 window.API  = API;

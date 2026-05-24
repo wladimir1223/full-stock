@@ -18,22 +18,34 @@ const App = (() => {
    * Para activarlo, añade ?dev=1 a la URL una sola vez.
    * Para desactivarlo, añade ?dev=0.
    */
-  function isSuperAdmin() {
+  function isDevMode() {
     return localStorage.getItem('fs_dev_mode') === '1';
   }
 
   /**
+   * Devuelve true si el usuario logueado tiene el rol 'superadmin'.
+   * El rol se extrae del JWT al hacer login y se guarda en localStorage.
+   */
+  function isSuperAdmin() {
+    return Auth.getRole() === 'superadmin';
+  }
+
+  /**
    * Devuelve los paneles disponibles según el rol:
-   *   - Cliente normal → Mis Categorías + Mis Productos
+   *   - Cliente normal    → Mis Categorías + Mis Productos
    *   - Modo Desarrollador → los anteriores + Builder Avanzado
+   *   - SuperAdmin         → todos los anteriores + Monitoreo Global
    */
   function getPanels() {
     const base = {
       catalog: { label: '🗂️ Mis Categorías', module: () => Catalog },
       content: { label: '📦 Mis Productos',  module: () => Content },
     };
-    if (isSuperAdmin()) {
+    if (isDevMode()) {
       base.builder = { label: '⚙️ Builder', module: () => Builder, devOnly: true };
+    }
+    if (isSuperAdmin()) {
+      base.monitor = { label: '🔭 Monitoreo Global', module: () => SuperAdmin };
     }
     return base;
   }
@@ -628,10 +640,16 @@ const App = (() => {
                         text-xs text-slate-600 flex justify-between items-center">
           <span class="flex items-center gap-2">
             Full Stock v2.0
-            ${isSuperAdmin()
+            ${isDevMode()
               ? `<span class="text-orange-400/70 border border-orange-900/40 rounded px-1.5 py-0.5
                              text-[10px] font-semibold" title="Para salir del modo dev: ?dev=0">
                    ⚙ Modo Dev
+                 </span>`
+              : ''}
+          ${isSuperAdmin()
+              ? `<span class="text-violet-400/70 border border-violet-900/40 rounded px-1.5 py-0.5
+                             text-[10px] font-semibold">
+                   ⭐ SuperAdmin
                  </span>`
               : ''}
           </span>
