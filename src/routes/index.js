@@ -39,15 +39,17 @@ const Collection = require('../models/Collection');
 const Item       = require('../models/Item');
 const upload     = require('../middleware/upload');
 const cloudinary = require('../config/cloudinary');
-const { requireAuth } = require('../middleware/auth');
+const { requireAuth }              = require('../middleware/auth');
+const { authLimiter }              = require('../middleware/security');
 
 // ════════════════════════════════════════════════════════════════
 // AUTH — Registro, Login y Recuperación
 // ════════════════════════════════════════════════════════════════
 
-router.post('/auth/register', authCtrl.register);
-router.post('/auth/login',    authCtrl.login);
-router.post('/auth/recover',  authCtrl.recover);
+// authLimiter: máx. 10 intentos fallidos por IP cada 15 minutos
+router.post('/auth/register', authLimiter, authCtrl.register);
+router.post('/auth/login',    authLimiter, authCtrl.login);
+router.post('/auth/recover',  authCtrl.recover);   // sin límite estricto (siempre responde success)
 
 // ════════════════════════════════════════════════════════════════
 // API PÚBLICA — Consumo externo por tenant_slug
