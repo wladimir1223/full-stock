@@ -159,7 +159,7 @@ const Content = (() => {
   function renderRow(item) {
     const cells = activeSchema.fields.map(f => {
       const val = item[f.key];
-      if (f.type === 'image_url' && val) {
+      if (isImageField(f) && val) {
         return `<td class="px-4 py-3">
           <img src="${escHtml(val)}" alt="" class="w-12 h-12 object-cover rounded-lg border border-slate-700"
             loading="lazy"
@@ -227,7 +227,7 @@ const Content = (() => {
 
     // Activar widgets de imagen luego de que el HTML esté en el DOM
     activeSchema.fields
-      .filter(f => f.type === 'image_url')
+      .filter(f => isImageField(f))
       .forEach(f => bindImageWidget(wrapper, f.key, item?.[f.key] ?? ''));
 
     wrapper.querySelector('#cancel-form-btn').addEventListener('click', () => {
@@ -243,11 +243,14 @@ const Content = (() => {
   function buildInput(field, item = null) {
     const value  = item ? (item[field.key] ?? '') : '';
     const baseId = `field-${field.key}`;
-    const isWide = field.type === 'long_text' || field.type === 'image_url';
+    const isWide = field.type === 'long_text' || isImageField(field);
 
     let inner;
 
-    switch (field.type) {
+    // Normalizar: si el campo se detecta como imagen por nombre, tratarlo igual que image_url
+    const effectiveType = isImageField(field) ? 'image_url' : field.type;
+
+    switch (effectiveType) {
       case 'long_text':
         inner = `
           <textarea id="${baseId}" class="input-field w-full" rows="3"
@@ -498,6 +501,17 @@ const Content = (() => {
     } catch {
       App.showToast('Error al eliminar.', 'error');
     }
+  }
+
+  // ─── Detección de campos imagen ───────────────────────────────────────────
+  // Devuelve true si el campo debe tratarse como imagen, ya sea por tipo
+  // explícito (image_url) o por nombre clave (imagen, foto, photo, etc.)
+
+  const IMAGE_KEYS = ['imagen', 'image', 'foto', 'photo', 'picture', 'img', 'thumbnail', 'miniatura'];
+
+  function isImageField(field) {
+    if (field.type === 'image_url') return true;
+    return IMAGE_KEYS.includes((field.key || '').toLowerCase());
   }
 
   // ─── Utilidades ───────────────────────────────────────────────────────────

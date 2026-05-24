@@ -38,6 +38,7 @@ const userDb     = require('../db/userDb');
 const Collection = require('../models/Collection');
 const Item       = require('../models/Item');
 const upload     = require('../middleware/upload');
+const cloudinary = require('../config/cloudinary');
 const { requireAuth } = require('../middleware/auth');
 
 // ════════════════════════════════════════════════════════════════
@@ -137,15 +138,39 @@ router.delete('/admin/collections/:slug/items/:id', requireAuth, contCtrl.delete
 // ════════════════════════════════════════════════════════════════
 
 router.post('/admin/upload', requireAuth, function (req, res) {
-  upload.single('image')(req, res, function (err) {
+  upload.single('image')(req, res, async function (err) {
     if (err)       return res.status(400).json({ success: false, message: err.message });
     if (!req.file) return res.status(400).json({ success: false, message: 'No se recibió ningún archivo.' });
-    res.json({
-      success:  true,
-      url:      '/uploads/' + req.file.filename,
-      filename: req.file.filename,
-      size:     req.file.size,
-    });
+
+    try {
+      // Subir el buffer en memoria directamente a Cloudinary vía upload_stream
+      const result = await new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          {
+            folder:        'full-stock',
+            resource_type: 'image',
+            // Nombre público basado en timestamp para evitar colisiones
+            public_id: `img-${Date.now()}`,
+          },
+          (error, result) => {
+            if (error) reject(error);
+            else       resolve(result);
+          }
+        );
+        stream.end(req.file.buffer);
+      });
+
+      res.json({
+        success:   true,
+        url:       result.secure_url,   // URL HTTPS de Cloudinary
+        public_id: result.public_id,
+        size:      result.bytes,
+      });
+
+    } catch (uploadErr) {
+      console.error('[upload:cloudinary]', uploadErr);
+      res.status(500).json({ success: false, message: 'Error al subir la imagen a Cloudinary.' });
+    }
   });
 });
 
