@@ -1,35 +1,54 @@
 /**
  * server.js — Punto de entrada de Full Stock.
- * Levanta Express, monta middleware y rutas.
+ *
+ * Orden de arranque:
+ *   1. Carga variables de entorno (.env en local, Render las inyecta en prod)
+ *   2. Conecta a MongoDB
+ *   3. Levanta Express
  */
 
-const express = require('express');
-const cors    = require('cors');
-const path    = require('path');
-const routes  = require('./src/routes/index');
+require('dotenv').config();   // no-op si no existe .env (Render lo ignora sin error)
+
+const express    = require('express');
+const cors       = require('cors');
+const path       = require('path');
+const connectDB  = require('./src/config/db');
+const routes     = require('./src/routes/index');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
 
 // ─── Middleware ────────────────────────────────────────────────────────────────
-app.use(cors());                          // CORS abierto para consumo externo
-app.use(express.json());                  // Parsear body JSON
+app.use(cors());
+app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // ─── Archivos estáticos (frontend) ────────────────────────────────────────────
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ─── Rutas de la API ───────────────────────────────────────────────────────────
+// ─── Rutas de la API ──────────────────────────────────────────────────────────
 app.use('/', routes);
 
-// ─── Fallback: devuelve el frontend para cualquier ruta no-API ─────────────────
+// ─── Fallback SPA ─────────────────────────────────────────────────────────────
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// ─── Arranque ──────────────────────────────────────────────────────────────────
-app.listen(PORT, () => {
-  console.log(`\n🚀  Full Stock corriendo en http://localhost:${PORT}`);
-  console.log(`📦  Panel Admin  → http://localhost:${PORT}`);
-  console.log(`🌐  API Pública  → http://localhost:${PORT}/api/v1/collections\n`);
-});
+// ─── Arranque (primero MongoDB, luego Express) ────────────────────────────────
+async function start() {
+  try {
+    await connectDB();          // falla aquí si MONGODB_URI no está configurada
+
+    app.listen(PORT, () => {
+      console.log(`\n🚀  Full Stock corriendo en http://localhost:${PORT}`);
+      console.log(`📦  Panel Admin  → http://localhost:${PORT}`);
+      console.log(`🌐  API Pública  → http://localhost:${PORT}/api/v1/<tenant>/collections\n`);
+    });
+
+  } catch (err) {
+    console.error('\n❌  No se pudo iniciar el servidor:', err.message);
+    process.exit(1);   // salir con error para que Render lo detecte y alerte
+  }
+}
+
+start();

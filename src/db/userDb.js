@@ -1,68 +1,54 @@
 /**
- * userDb.js — Gestión de usuarios / tenants.
- * Almacena en: src/data/users.json
- * Cada usuario ES un tenant (relación 1:1).
+ * userDb.js — Abstracción de acceso a la colección de Usuarios/Tenants.
  *
- * Estructura de cada usuario:
- * {
- *   id:           string  (UUID — también es el tenant_id)
- *   slug:         string  (identificador URL-safe único, ej: "cafe-lumiere")
- *   name:         string  (nombre del negocio / cuenta)
- *   email:        string  (lowercase)
- *   passwordHash: string  ("salt:hash" generado con scrypt)
- *   createdAt:    string  (ISO)
- * }
+ * Todas las funciones son async y retornan objetos planos con un
+ * campo `id` (string) para mantener compatibilidad con los controladores
+ * y el módulo de autenticación JWT.
  */
 
-const fs   = require('fs');
-const path = require('path');
+const User = require('../models/User');
 
-const DATA_DIR   = path.join(__dirname, '..', 'data');
-const USERS_FILE = path.join(DATA_DIR, 'users.json');
+// ─── Helpers internos ─────────────────────────────────────────────────────────
 
-// ─── Bootstrap ────────────────────────────────────────────────────────────────
-
-function ensureFile() {
-  if (!fs.existsSync(DATA_DIR))   fs.mkdirSync(DATA_DIR, { recursive: true });
-  if (!fs.existsSync(USERS_FILE)) fs.writeFileSync(USERS_FILE, '[]', 'utf8');
-}
-ensureFile();
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function readUsers() {
-  try {
-    return JSON.parse(fs.readFileSync(USERS_FILE, 'utf8')) || [];
-  } catch {
-    return [];
-  }
-}
-
-function writeUsers(users) {
-  fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2), 'utf8');
+/** Convierte un documento Mongoose en objeto plano con `id` como string. */
+function toPlain(doc) {
+  if (!doc) return null;
+  const obj = doc.toObject ? doc.toObject() : doc;
+  return { ...obj, id: obj._id.toString() };
 }
 
 // ─── Consultas ────────────────────────────────────────────────────────────────
 
-function findByEmail(email) {
-  return readUsers().find(u => u.email === email.toLowerCase().trim()) || null;
+async function findByEmail(email) {
+  const doc = await User.findOne({ email: email.toLowerCase().trim() });
+  return toPlain(doc);
 }
 
-function findBySlug(slug) {
-  return readUsers().find(u => u.slug === slug) || null;
+async function findBySlug(slug) {
+  const doc = await User.findOne({ slug });
+  return toPlain(doc);
 }
 
-function findById(id) {
-  return readUsers().find(u => u.id === id) || null;
+async function findById(id) {
+  const doc = await User.findById(id).catch(() => null);
+  return toPlain(doc);
 }
 
 // ─── Escritura ────────────────────────────────────────────────────────────────
 
-function create(user) {
-  const users = readUsers();
-  users.push(user);
-  writeUsers(users);
-  return user;
+/**
+ * Crea un nuevo usuario/tenant en MongoDB.
+ * Recibe: { slug, name, email, passwordHash }
+ * Devuelve el documento con `id` como string.
+ */
+async function create(userData) {
+  const doc = await User.create({
+    slug:         userData.slug,
+    name:         userData.name,
+    email:        userData.email,
+    passwordHash: userData.passwordHash,
+  });
+  return toPlain(doc);
 }
 
 module.exports = { findByEmail, findBySlug, findById, create };

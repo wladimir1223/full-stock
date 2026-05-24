@@ -1,16 +1,21 @@
 /**
- * collectionsController.js — CRUD de esquemas de colecciones (multi-tenant).
- * Todas las operaciones están aisladas por req.tenant.id.
+ * collectionsController.js — CRUD de colecciones (multi-tenant).
+ *
+ * Todas las operaciones están aisladas por req.tenant.id (tenantId).
+ * Las respuestas JSON mantienen exactamente la misma forma que antes
+ * para no romper el frontend ni los clientes externos.
  */
 
-const db              = require('../db/fileDb');
-const { v4: uuidv4 }  = require('uuid');
+const Collection     = require('../models/Collection');
+const Item           = require('../models/Item');
 
-// Convierte un nombre en slug URL-safe
+const VALID_TYPES = ['short_text', 'long_text', 'number', 'image_url'];
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
 function toSlug(name) {
   return name
-    .toLowerCase()
-    .trim()
+    .toLowerCase().trim()
     .normalize('NFD').replace(/[̀-ͯ]/g, '')
     .replace(/\s+/g,        '-')
     .replace(/[^a-z0-9-]/g, '')
@@ -18,79 +23,118 @@ function toSlug(name) {
     .replace(/^-|-$/g,      '');
 }
 
-const VALID_TYPES = ['short_text', 'long_text', 'number', 'image_url'];
-
-// GET /admin/collections
-function listCollections(req, res) {
-  const schemas = db.getSchemas(req.tenant.id);
-  res.json({ success: true, data: Object.values(schemas) });
-}
-
-// GET /admin/collections/:slug
-function getCollection(req, res) {
-  const schema = db.getSchema(req.tenant.id, req.params.slug);
-  if (!schema) return res.status(404).json({ success: false, message: 'Colección no encontrada.' });
-  res.json({ success: true, data: schema });
-}
-
-// POST /admin/collections
-function createCollection(req, res) {
-  const { name, fields } = req.body;
-
-  if (!name || typeof name !== 'string' || name.trim() === '') {
-    return res.status(400).json({ success: false, message: 'El nombre de la colección es obligatorio.' });
-  }
-  if (!Array.isArray(fields) || fields.length === 0) {
-    return res.status(400).json({ success: false, message: 'Debes definir al menos un campo.' });
-  }
-
-  for (const field of fields) {
-    if (!field.name || typeof field.name !== 'string' || field.name.trim() === '') {
-      return res.status(400).json({ success: false, message: 'Cada campo debe tener un nombre.' });
-    }
-    if (!VALID_TYPES.includes(field.type)) {
-      return res.status(400).json({
-        success: false,
-        message: `Tipo inválido: "${field.type}". Válidos: ${VALID_TYPES.join(', ')}.`,
-      });
-    }
-  }
-
-  const slug = toSlug(name);
-  if (!slug) return res.status(400).json({ success: false, message: 'Nombre de colección inválido.' });
-
-  if (db.getSchema(req.tenant.id, slug)) {
-    return res.status(409).json({ success: false, message: `Ya existe una colección con el slug "${slug}".` });
-  }
-
-  const normalizedFields = fields.map(f => ({
-    key:   f.name.toLowerCase().trim().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, ''),
-    label: f.name.trim(),
-    type:  f.type,
-  }));
-
-  const schema = {
-    id:        uuidv4(),
-    name:      name.trim(),
-    slug,
-    fields:    normalizedFields,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
+/** Convierte un documento Collection en el objeto plano que espera el frontend. */
+function formatCollection(doc) {
+  return {
+    id:        doc._id.toString(),
+    name:      doc.name,
+    slug:      doc.slug,
+    fields:    doc.fields,
+    createdAt: doc.createdAt,
+    updatedAt: doc.updatedAt,
   };
-
-  db.saveSchema(req.tenant.id, slug, schema);
-  res.status(201).json({ success: true, data: schema });
 }
 
-// DELETE /admin/collections/:slug
-function deleteCollection(req, res) {
-  const { slug } = req.params;
-  const schema   = db.getSchema(req.tenant.id, slug);
-  if (!schema) return res.status(404).json({ success: false, message: 'Colección no encontrada.' });
+// ─── GET /admin/collections ───────────────────────────────────────────────────
 
-  db.deleteSchema(req.tenant.id, slug);
-  db.deleteCollectionContent(req.tenant.id, slug);
-  res.json({ success: true, message: `Colección "${schema.name}" eliminada.` });
+async function listCollections(req, res) {
+  try {
+    const cols = await Collection.find({ tenantId: req.tenant.id }).sort({ createdAt: 1 });
+    res.json({ success: true, data: cols.map(formatCollection) });
+  } catch (err) {
+    console.error('[listCollections]', err);
+    res.status(500).json({ success: false, message: 'Error al obtener las colecciones.' });
+  }
+}
+
+// ─── GET /admin/collections/:slug ─────────────────────────────────────────────
+
+async function getCollection(req, res) {
+  try {
+    const col = await Collection.findOne({ tenantId: req.tenant.id, slug: req.params.slug });
+    if (!col) return res.status(404).json({ success: false, message: 'Colección no encontrada.' });
+    res.json({ success: true, data: formatCollection(col) });
+  } catch (err) {
+    console.error('[getCollection]', err);
+    res.status(500).json({ success: false, message: 'Error al obtener la colección.' });
+  }
+}
+
+// ─── POST /admin/collections ──────────────────────────────────────────────────
+
+async function createCollection(req, res) {
+  try {
+    const { name, fields } = req.body;
+
+    // Validaciones
+    if (!name || typeof name !== 'string' || name.trim() === '')
+      return res.status(400).json({ success: false, message: 'El nombre de la colección es obligatorio.' });
+    if (!Array.isArray(fields) || fields.length === 0)
+      return res.status(400).json({ success: false, message: 'Debes definir al menos un campo.' });
+
+    for (const field of fields) {
+      if (!field.name || typeof field.name !== 'string' || field.name.trim() === '')
+        return res.status(400).json({ success: false, message: 'Cada campo debe tener un nombre.' });
+      if (!VALID_TYPES.includes(field.type))
+        return res.status(400).json({
+          success: false,
+          message: `Tipo inválido: "${field.type}". Válidos: ${VALID_TYPES.join(', ')}.`,
+        });
+    }
+
+    const slug = toSlug(name);
+    if (!slug)
+      return res.status(400).json({ success: false, message: 'Nombre de colección inválido.' });
+
+    // Slug único por tenant
+    const exists = await Collection.findOne({ tenantId: req.tenant.id, slug });
+    if (exists)
+      return res.status(409).json({ success: false, message: `Ya existe una colección con el slug "${slug}".` });
+
+    const normalizedFields = fields.map(f => ({
+      key:   f.name.toLowerCase().trim()
+               .normalize('NFD').replace(/[̀-ͯ]/g, '')
+               .replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, ''),
+      label: f.name.trim(),
+      type:  f.type,
+    }));
+
+    const col = await Collection.create({
+      tenantId: req.tenant.id,
+      name:     name.trim(),
+      slug,
+      fields:   normalizedFields,
+    });
+
+    res.status(201).json({ success: true, data: formatCollection(col) });
+
+  } catch (err) {
+    console.error('[createCollection]', err);
+    res.status(500).json({ success: false, message: 'Error al crear la colección.' });
+  }
+}
+
+// ─── DELETE /admin/collections/:slug ──────────────────────────────────────────
+
+async function deleteCollection(req, res) {
+  try {
+    const { slug } = req.params;
+
+    const col = await Collection.findOne({ tenantId: req.tenant.id, slug });
+    if (!col) return res.status(404).json({ success: false, message: 'Colección no encontrada.' });
+
+    // Eliminar la colección y todos sus items en paralelo
+    await Promise.all([
+      Collection.deleteOne({ _id: col._id }),
+      Item.deleteMany({ tenantId: req.tenant.id, collectionSlug: slug }),
+    ]);
+
+    res.json({ success: true, message: `Colección "${col.name}" eliminada.` });
+
+  } catch (err) {
+    console.error('[deleteCollection]', err);
+    res.status(500).json({ success: false, message: 'Error al eliminar la colección.' });
+  }
 }
 
 module.exports = { listCollections, getCollection, createCollection, deleteCollection };

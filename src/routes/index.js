@@ -34,13 +34,14 @@ const router     = express.Router();
 const authCtrl   = require('../controllers/authController');
 const colCtrl    = require('../controllers/collectionsController');
 const contCtrl   = require('../controllers/contentController');
-const db         = require('../db/fileDb');
 const userDb     = require('../db/userDb');
+const Collection = require('../models/Collection');
+const Item       = require('../models/Item');
 const upload     = require('../middleware/upload');
 const { requireAuth } = require('../middleware/auth');
 
 // ════════════════════════════════════════════════════════════════
-// AUTH — Registro y Login
+// AUTH — Registro, Login y Recuperación
 // ════════════════════════════════════════════════════════════════
 
 router.post('/auth/register', authCtrl.register);
@@ -49,41 +50,67 @@ router.post('/auth/recover',  authCtrl.recover);
 
 // ════════════════════════════════════════════════════════════════
 // API PÚBLICA — Consumo externo por tenant_slug
+// Estas rutas alimentan los cliente-web.html de cada negocio.
 // ════════════════════════════════════════════════════════════════
 
 // GET /api/v1/:tenant_slug/collections
-router.get('/api/v1/:tenant_slug/collections', function(req, res) {
-  const tenant = userDb.findBySlug(req.params.tenant_slug);
-  if (!tenant) return res.status(404).json({ success: false, message: 'Tenant no encontrado.' });
+router.get('/api/v1/:tenant_slug/collections', async function (req, res) {
+  try {
+    const tenant = await userDb.findBySlug(req.params.tenant_slug);
+    if (!tenant) return res.status(404).json({ success: false, message: 'Tenant no encontrado.' });
 
-  const schemas = db.getSchemas(tenant.id);
-  const list    = Object.values(schemas).map(function(s) {
-    return {
-      name:     s.name,
-      slug:     s.slug,
-      endpoint: `/api/v1/${tenant.slug}/collections/${s.slug}`,
-      fields:   s.fields,
-    };
-  });
-  res.json({ success: true, tenant: tenant.slug, data: list });
+    const cols = await Collection.find({ tenantId: tenant.id }).sort({ createdAt: 1 });
+    const list = cols.map(c => ({
+      name:     c.name,
+      slug:     c.slug,
+      endpoint: `/api/v1/${tenant.slug}/collections/${c.slug}`,
+      fields:   c.fields,
+    }));
+
+    res.json({ success: true, tenant: tenant.slug, data: list });
+
+  } catch (err) {
+    console.error('[public:listCollections]', err);
+    res.status(500).json({ success: false, message: 'Error de servidor.' });
+  }
 });
 
 // GET /api/v1/:tenant_slug/collections/:collection_slug
-router.get('/api/v1/:tenant_slug/collections/:collection_slug', function(req, res) {
-  const tenant = userDb.findBySlug(req.params.tenant_slug);
-  if (!tenant) return res.status(404).json({ success: false, message: 'Tenant no encontrado.' });
+router.get('/api/v1/:tenant_slug/collections/:collection_slug', async function (req, res) {
+  try {
+    const tenant = await userDb.findBySlug(req.params.tenant_slug);
+    if (!tenant) return res.status(404).json({ success: false, message: 'Tenant no encontrado.' });
 
-  const schema = db.getSchema(tenant.id, req.params.collection_slug);
-  if (!schema) return res.status(404).json({ success: false, message: 'Colección no encontrada.' });
+    const col = await Collection.findOne({
+      tenantId: tenant.id,
+      slug:     req.params.collection_slug,
+    });
+    if (!col) return res.status(404).json({ success: false, message: 'Colección no encontrada.' });
 
-  const items = db.getItems(tenant.id, req.params.collection_slug);
-  res.json({
-    success:    true,
-    tenant:     tenant.slug,
-    collection: { name: schema.name, slug: schema.slug },
-    total:      items.length,
-    data:       items,
-  });
+    const items = await Item.find({
+      tenantId:       tenant.id,
+      collectionSlug: col.slug,
+    }).sort({ createdAt: 1 });
+
+    const data = items.map(item => ({
+      id:        item._id.toString(),
+      ...item.data,
+      createdAt: item.createdAt,
+      updatedAt: item.updatedAt,
+    }));
+
+    res.json({
+      success:    true,
+      tenant:     tenant.slug,
+      collection: { name: col.name, slug: col.slug },
+      total:      data.length,
+      data,
+    });
+
+  } catch (err) {
+    console.error('[public:getCollection]', err);
+    res.status(500).json({ success: false, message: 'Error de servidor.' });
+  }
 });
 
 // ════════════════════════════════════════════════════════════════
@@ -109,10 +136,10 @@ router.delete('/admin/collections/:slug/items/:id', requireAuth, contCtrl.delete
 // ADMIN — Upload de imágenes (protegido)
 // ════════════════════════════════════════════════════════════════
 
-router.post('/admin/upload', requireAuth, function(req, res) {
-  upload.single('image')(req, res, function(err) {
-    if (err)        return res.status(400).json({ success: false, message: err.message });
-    if (!req.file)  return res.status(400).json({ success: false, message: 'No se recibió ningún archivo.' });
+router.post('/admin/upload', requireAuth, function (req, res) {
+  upload.single('image')(req, res, function (err) {
+    if (err)       return res.status(400).json({ success: false, message: err.message });
+    if (!req.file) return res.status(400).json({ success: false, message: 'No se recibió ningún archivo.' });
     res.json({
       success:  true,
       url:      '/uploads/' + req.file.filename,
