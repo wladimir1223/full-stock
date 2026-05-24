@@ -111,11 +111,12 @@ var API = {
     delete: function(slug)    { return request('DELETE', '/admin/collections/' + slug); },
   },
   items: {
-    list:   function(slug)           { return request('GET',    '/admin/collections/' + slug + '/items'); },
-    get:    function(slug, id)       { return request('GET',    '/admin/collections/' + slug + '/items/' + id); },
-    create: function(slug, data)     { return request('POST',   '/admin/collections/' + slug + '/items', data); },
-    update: function(slug, id, data) { return request('PUT',    '/admin/collections/' + slug + '/items/' + id, data); },
-    delete: function(slug, id)       { return request('DELETE', '/admin/collections/' + slug + '/items/' + id); },
+    list:   function(slug)                { return request('GET',    '/admin/collections/' + slug + '/items'); },
+    get:    function(slug, id)            { return request('GET',    '/admin/collections/' + slug + '/items/' + id); },
+    create: function(slug, data)          { return request('POST',   '/admin/collections/' + slug + '/items', data); },
+    update: function(slug, id, data)      { return request('PUT',    '/admin/collections/' + slug + '/items/' + id, data); },
+    delete: function(slug, id)            { return request('DELETE', '/admin/collections/' + slug + '/items/' + id); },
+    sell:   function(slug, id, quantity)  { return request('POST',   '/admin/collections/' + slug + '/items/' + id + '/sell', { quantity: quantity }); },
   },
   upload: function(formData) { return request('POST', '/admin/upload', formData, true); },
 };

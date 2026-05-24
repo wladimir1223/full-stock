@@ -28,6 +28,16 @@ const Builder = (() => {
             </button>
           </div>
 
+          <!-- Campo Stock permanente (siempre se incluye automáticamente) -->
+          <div class="flex gap-2 items-center mb-2 px-3 py-2 rounded-lg bg-indigo-950/50 border border-indigo-800/40">
+            <input type="text" value="Stock" disabled
+              class="input-field flex-1 opacity-60 cursor-not-allowed" />
+            <select disabled class="input-field w-44 opacity-60 cursor-not-allowed">
+              <option>Número</option>
+            </select>
+            <span class="text-xs text-indigo-400 font-medium whitespace-nowrap px-1">Automático</span>
+          </div>
+
           <div id="fields-container" class="space-y-3 mb-6">
             <!-- Los campos se insertan aquí dinámicamente -->
           </div>

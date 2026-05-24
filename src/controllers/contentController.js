@@ -194,4 +194,82 @@ async function deleteItem(req, res) {
   }
 }
 
-module.exports = { listItems, getItem, createItem, updateItem, deleteItem };
+// ─── POST /admin/collections/:slug/items/:id/sell ────────────────────────────
+//
+// Registra una venta restando `quantity` unidades del stock del producto.
+//
+// Body: { quantity: 1 }
+//
+// Lógica:
+//   1. Validar que quantity sea entero > 0
+//   2. Leer el stock actual del documento
+//   3. Si stock < quantity → 400 INSUFFICIENT_STOCK
+//   4. Decremento atómico con $inc + condición $gte (safe race-condition)
+//   5. Devuelve el documento actualizado
+
+async function sellItem(req, res) {
+  try {
+    if (!isValidId(req.params.id))
+      return res.status(404).json({ success: false, message: 'Producto no encontrado.' });
+
+    const quantity = parseInt(req.body.quantity, 10);
+    if (!Number.isInteger(quantity) || quantity < 1)
+      return res.status(400).json({
+        success: false,
+        message: 'La cantidad debe ser un número entero positivo.',
+      });
+
+    // Verificar existencia y propiedad del tenant
+    const existing = await Item.findOne({
+      _id:            req.params.id,
+      tenantId:       req.tenant.id,
+      collectionSlug: req.params.slug,
+    });
+    if (!existing)
+      return res.status(404).json({ success: false, message: 'Producto no encontrado.' });
+
+    const currentStock = Number(existing.data?.stock ?? 0);
+
+    if (currentStock < quantity) {
+      return res.status(400).json({
+        success: false,
+        code:    'INSUFFICIENT_STOCK',
+        message: `Stock insuficiente. Disponible: ${currentStock}, solicitado: ${quantity}.`,
+        stock:   currentStock,
+      });
+    }
+
+    // Decremento atómico: solo se aplica si en MongoDB sigue habiendo suficiente stock
+    // (protege contra condiciones de carrera si hay peticiones simultáneas)
+    const updated = await Item.findOneAndUpdate(
+      {
+        _id:          existing._id,
+        tenantId:     req.tenant.id,
+        'data.stock': { $gte: quantity },
+      },
+      { $inc: { 'data.stock': -quantity } },
+      { new: true }
+    );
+
+    if (!updated) {
+      return res.status(400).json({
+        success: false,
+        code:    'INSUFFICIENT_STOCK',
+        message: 'Stock insuficiente (actualizado por otra operación simultánea). Recarga e intenta de nuevo.',
+        stock:   0,
+      });
+    }
+
+    res.json({
+      success: true,
+      message: `Venta registrada. Stock restante: ${updated.data.stock}.`,
+      data:    formatItem(updated),
+    });
+
+  } catch (err) {
+    console.error('[sellItem]', err);
+    res.status(500).json({ success: false, message: 'Error al registrar la venta.' });
+  }
+}
+
+module.exports = { listItems, getItem, createItem, updateItem, deleteItem, sellItem };

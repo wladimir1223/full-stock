@@ -99,6 +99,14 @@ async function createCollection(req, res) {
       type:  f.type,
     }));
 
+    // Garantizar que SIEMPRE exista un campo "stock" (control de inventario).
+    // Si el usuario ya lo definió con cualquier nombre que normalice a "stock",
+    // no lo duplicamos.
+    const hasStock = normalizedFields.some(f => f.key === 'stock');
+    if (!hasStock) {
+      normalizedFields.push({ key: 'stock', label: 'Stock', type: 'number' });
+    }
+
     const col = await Collection.create({
       tenantId: req.tenant.id,
       name:     name.trim(),

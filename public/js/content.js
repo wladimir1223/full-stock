@@ -156,9 +156,25 @@ const Content = (() => {
 
   // ─── Fila de tabla ────────────────────────────────────────────────────────
 
+  // Badge de stock con colores semafóricos
+  function stockBadge(n) {
+    n = Number(n ?? 0);
+    if (n <= 0) return `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-red-900/50 text-red-400 border border-red-700/50">⚠ Sin stock</span>`;
+    if (n <= 9) return `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-900/50 text-amber-400 border border-amber-700/50">▲ ${n}</span>`;
+    return `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-900/50 text-emerald-400 border border-emerald-700/50">✓ ${n}</span>`;
+  }
+
   function renderRow(item) {
+    const hasStock = activeSchema.fields.some(f => f.key === 'stock');
+
     const cells = activeSchema.fields.map(f => {
       const val = item[f.key];
+
+      // Columna stock → badge de color
+      if (f.key === 'stock') {
+        return `<td class="px-4 py-3">${stockBadge(val)}</td>`;
+      }
+
       if (isImageField(f) && val) {
         return `<td class="px-4 py-3">
           <img src="${escHtml(val)}" alt="" class="w-12 h-12 object-cover rounded-lg border border-slate-700"
@@ -178,6 +194,8 @@ const Content = (() => {
       <tr class="hover:bg-slate-800/50 transition" data-id="${item.id}">
         ${cells}
         <td class="px-4 py-3 text-right whitespace-nowrap">
+          ${hasStock ? `<button class="text-emerald-400 hover:text-emerald-300 text-xs font-semibold mr-3 btn-sell"
+            data-id="${item.id}">Vender 1</button>` : ''}
           <button class="text-indigo-400 hover:text-indigo-300 text-xs font-medium mr-3 btn-edit"
             data-id="${item.id}">Editar</button>
           <button class="text-red-400 hover:text-red-300 text-xs font-medium btn-delete"
@@ -196,6 +214,9 @@ const Content = (() => {
     });
     main.querySelectorAll('.btn-delete').forEach(btn => {
       btn.addEventListener('click', () => deleteItemHandler(main, btn.dataset.id));
+    });
+    main.querySelectorAll('.btn-sell').forEach(btn => {
+      btn.addEventListener('click', () => sellItemHandler(main, btn.dataset.id, btn));
     });
   }
 
@@ -241,7 +262,8 @@ const Content = (() => {
   // ─── Construcción de inputs ───────────────────────────────────────────────
 
   function buildInput(field, item = null) {
-    const value  = item ? (item[field.key] ?? '') : '';
+    // Para items nuevos el campo "stock" siempre arranca en 0
+    const value  = item ? (item[field.key] ?? '') : (field.key === 'stock' ? 0 : '');
     const baseId = `field-${field.key}`;
     const isWide = field.type === 'long_text' || isImageField(field);
 
@@ -487,6 +509,35 @@ const Content = (() => {
       wrapper.querySelector('#form-error').classList.remove('hidden');
       btn.disabled    = false;
       btn.textContent = editingId ? 'Actualizar' : 'Crear';
+    }
+  }
+
+  // ─── Registrar venta (Vender 1) ──────────────────────────────────────────
+
+  async function sellItemHandler(main, id, btn) {
+    const prev = btn.textContent;
+    btn.disabled    = true;
+    btn.textContent = '…';
+
+    try {
+      const result = await API.items.sell(activeSlug, id, 1);
+      // Actualizar badge en la misma fila sin recargar toda la tabla
+      const row      = main.querySelector(`tr[data-id="${id}"]`);
+      const stockTd  = row?.querySelector('td:has(span[class*="rounded-full"])');
+      if (stockTd) stockTd.innerHTML = stockBadge(result.data?.stock ?? 0);
+
+      App.showToast(`Venta registrada. Stock: ${result.data?.stock ?? 0}`, 'success');
+    } catch (err) {
+      const msg = err.message || 'Error al registrar la venta.';
+      // Si es stock insuficiente, mostrarlo claramente
+      if (err.code === 'INSUFFICIENT_STOCK' || (err.stock !== undefined && err.stock === 0)) {
+        App.showToast('Sin stock disponible.', 'error');
+      } else {
+        App.showToast(msg, 'error');
+      }
+    } finally {
+      btn.disabled    = false;
+      btn.textContent = prev;
     }
   }
 

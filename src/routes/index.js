@@ -33,7 +33,7 @@ const router     = express.Router();
 
 const authCtrl   = require('../controllers/authController');
 const colCtrl    = require('../controllers/collectionsController');
-const contCtrl   = require('../controllers/contentController');
+const contCtrl   = require('../controllers/contentController');  // listItems, getItem, createItem, updateItem, deleteItem, sellItem
 const userDb     = require('../db/userDb');
 const Collection = require('../models/Collection');
 const Item       = require('../models/Item');
@@ -129,11 +129,13 @@ router.delete('/admin/collections/:slug', requireAuth, colCtrl.deleteCollection)
 // ADMIN — Items de contenido (protegido)
 // ════════════════════════════════════════════════════════════════
 
-router.get('/admin/collections/:slug/items',        requireAuth, contCtrl.listItems);
-router.get('/admin/collections/:slug/items/:id',    requireAuth, contCtrl.getItem);
-router.post('/admin/collections/:slug/items',       requireAuth, contCtrl.createItem);
-router.put('/admin/collections/:slug/items/:id',    requireAuth, contCtrl.updateItem);
-router.delete('/admin/collections/:slug/items/:id', requireAuth, contCtrl.deleteItem);
+router.get('/admin/collections/:slug/items',               requireAuth, contCtrl.listItems);
+router.get('/admin/collections/:slug/items/:id',           requireAuth, contCtrl.getItem);
+router.post('/admin/collections/:slug/items',              requireAuth, contCtrl.createItem);
+router.put('/admin/collections/:slug/items/:id',           requireAuth, contCtrl.updateItem);
+router.delete('/admin/collections/:slug/items/:id',        requireAuth, contCtrl.deleteItem);
+// POST /admin/collections/:slug/items/:id/sell — registra venta y descuenta stock
+router.post('/admin/collections/:slug/items/:id/sell',     requireAuth, contCtrl.sellItem);
 
 // ════════════════════════════════════════════════════════════════
 // ADMIN — Upload de imágenes (protegido)
