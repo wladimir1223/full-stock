@@ -6,8 +6,9 @@
  * para no romper el frontend ni los clientes externos.
  */
 
-const Collection     = require('../models/Collection');
-const Item           = require('../models/Item');
+const Collection                = require('../models/Collection');
+const Item                      = require('../models/Item');
+const { logActivity, ACTIONS }  = require('../models/ActivityLog');
 
 const VALID_TYPES = ['short_text', 'long_text', 'number', 'image_url'];
 
@@ -114,6 +115,9 @@ async function createCollection(req, res) {
       fields:   normalizedFields,
     });
 
+    logActivity(req.tenant, ACTIONS.CREATE_COLLECTION,
+      `Creó la colección "${col.name}" (slug: ${col.slug}) con ${col.fields.length} campos`, col._id);
+
     res.status(201).json({ success: true, data: formatCollection(col) });
 
   } catch (err) {
@@ -136,6 +140,9 @@ async function deleteCollection(req, res) {
       Collection.deleteOne({ _id: col._id }),
       Item.deleteMany({ tenantId: req.tenant.id, collectionSlug: slug }),
     ]);
+
+    logActivity(req.tenant, ACTIONS.DELETE_COLLECTION,
+      `Eliminó la colección "${col.name}" (slug: ${col.slug}) y todos sus items`, col._id);
 
     res.json({ success: true, message: `Colección "${col.name}" eliminada.` });
 

@@ -104,6 +104,7 @@ function requireAuth(req, res, next) {
       slug:  payload.tenantSlug,
       email: payload.email,
       name:  payload.name,
+      role:  payload.role || 'tenant',   // 'tenant' | 'superadmin'
     };
     next();
   } catch (err) {

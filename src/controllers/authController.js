@@ -9,9 +9,10 @@
  * Slug del tenant: derivado del nombre del negocio, garantizado único en MongoDB.
  */
 
-const crypto         = require('crypto');
-const userDb         = require('../db/userDb');
-const { signJWT }    = require('../middleware/auth');
+const crypto                    = require('crypto');
+const userDb                    = require('../db/userDb');
+const { signJWT }               = require('../middleware/auth');
+const { logActivity, ACTIONS }  = require('../models/ActivityLog');
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -52,6 +53,7 @@ function buildJWTResponse(user) {
     tenantSlug: user.slug,
     email:      user.email,
     name:       user.name,
+    role:       user.role || 'tenant',
   });
   return {
     success: true,
@@ -105,6 +107,7 @@ async function register(req, res) {
       passwordHash: hashPassword(password),
     });
 
+    logActivity(user, ACTIONS.USER_REGISTER, `Nueva cuenta registrada: ${user.email}`);
     return res.status(201).json(buildJWTResponse(user));
 
   } catch (err) {
@@ -129,6 +132,7 @@ async function login(req, res) {
       , 300);
     }
 
+    logActivity(user, ACTIONS.USER_LOGIN, `Login exitoso: ${user.email}`);
     return res.json(buildJWTResponse(user));
 
   } catch (err) {

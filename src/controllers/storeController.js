@@ -22,10 +22,11 @@
  *   }
  */
 
-const mongoose   = require('mongoose');
-const userDb     = require('../db/userDb');
-const Collection = require('../models/Collection');
-const Item       = require('../models/Item');
+const mongoose                  = require('mongoose');
+const userDb                    = require('../db/userDb');
+const Collection                = require('../models/Collection');
+const Item                      = require('../models/Item');
+const { logActivity, ACTIONS }  = require('../models/ActivityLog');
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -226,6 +227,14 @@ async function checkout(req, res) {
         stockRestante:  Number(updated.data.stock),
       });
     }
+
+    // ── Log del checkout ──────────────────────────────────────────────────
+    const summary = orderItems.map(i => `${i.name} x${i.quantity}`).join(', ');
+    logActivity(
+      { id: tenant.id, name: tenant.name, slug: tenant.slug },
+      ACTIONS.CHECKOUT,
+      `Compra pública: ${summary}`
+    );
 
     // ── Respuesta exitosa ──────────────────────────────────────────────────
     res.json({

@@ -40,8 +40,10 @@ const Item       = require('../models/Item');
 const upload     = require('../middleware/upload');
 const cloudinary = require('../config/cloudinary');
 const { requireAuth }                        = require('../middleware/auth');
+const { requireSuperAdmin }                  = require('../middleware/requireSuperAdmin');
 const { authLimiter, checkoutLimiter }       = require('../middleware/security');
 const storeCtrl                              = require('../controllers/storeController');
+const { ActivityLog }                        = require('../models/ActivityLog');
 
 // ════════════════════════════════════════════════════════════════
 // AUTH — Registro, Login y Recuperación
@@ -114,6 +116,64 @@ router.get('/api/v1/:tenant_slug/collections/:collection_slug', async function (
   } catch (err) {
     console.error('[public:getCollection]', err);
     res.status(500).json({ success: false, message: 'Error de servidor.' });
+  }
+});
+
+// ════════════════════════════════════════════════════════════════
+// SUPERADMIN — Monitoreo global (requiere role=superadmin)
+// ════════════════════════════════════════════════════════════════
+
+// GET /api/v1/superadmin/logs?limit=100&tenant=slug
+//   Devuelve los últimos N logs de actividad.
+//   Query params opcionales:
+//     limit  → máx. de resultados (default 100, máx. 500)
+//     tenant → filtrar por slug de tenant
+router.get('/api/v1/superadmin/logs', requireAuth, requireSuperAdmin, async (req, res) => {
+  try {
+    const limit     = Math.min(parseInt(req.query.limit, 10) || 100, 500);
+    const filter    = {};
+    if (req.query.tenant) filter.tenantSlug = req.query.tenant;
+
+    const logs = await ActivityLog.find(filter)
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .lean();
+
+    res.json({ success: true, total: logs.length, data: logs });
+  } catch (err) {
+    console.error('[superadmin:logs]', err);
+    res.status(500).json({ success: false, message: 'Error al obtener los logs.' });
+  }
+});
+
+// GET /api/v1/superadmin/tenants
+//   Resumen de todos los tenants con conteo de actividad.
+router.get('/api/v1/superadmin/tenants', requireAuth, requireSuperAdmin, async (req, res) => {
+  try {
+    const User = require('../models/User');
+    const tenants = await User.find({}, 'name slug email role createdAt').sort({ createdAt: -1 }).lean();
+
+    // Conteo de logs por tenant
+    const counts = await ActivityLog.aggregate([
+      { $group: { _id: '$tenantId', total: { $sum: 1 }, last: { $max: '$createdAt' } } },
+    ]);
+    const countMap = Object.fromEntries(counts.map(c => [c._id, { total: c.total, last: c.last }]));
+
+    const data = tenants.map(t => ({
+      id:          t._id.toString(),
+      name:        t.name,
+      slug:        t.slug,
+      email:       t.email,
+      role:        t.role,
+      createdAt:   t.createdAt,
+      activityCount: countMap[t._id.toString()]?.total || 0,
+      lastActivity:  countMap[t._id.toString()]?.last  || null,
+    }));
+
+    res.json({ success: true, total: data.length, data });
+  } catch (err) {
+    console.error('[superadmin:tenants]', err);
+    res.status(500).json({ success: false, message: 'Error al obtener tenants.' });
   }
 });
 

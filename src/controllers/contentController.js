@@ -8,9 +8,10 @@
  *   { id, nombre, precio, descripcion, imagen, createdAt, updatedAt }
  */
 
-const Collection = require('../models/Collection');
-const Item       = require('../models/Item');
-const mongoose   = require('mongoose');
+const Collection                = require('../models/Collection');
+const Item                      = require('../models/Item');
+const mongoose                  = require('mongoose');
+const { logActivity, ACTIONS }  = require('../models/ActivityLog');
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -132,6 +133,10 @@ async function createItem(req, res) {
       data,
     });
 
+    const productName = data.nombre || data.name || data.titulo || item._id.toString();
+    logActivity(req.tenant, ACTIONS.CREATE_ITEM,
+      `Creó producto "${productName}" en colección "${req.params.slug}"`, item._id);
+
     res.status(201).json({ success: true, data: formatItem(item) });
 
   } catch (err) {
@@ -160,6 +165,10 @@ async function updateItem(req, res) {
     );
     if (!item) return res.status(404).json({ success: false, message: 'Item no encontrado.' });
 
+    const productName = data.nombre || data.name || data.titulo || req.params.id;
+    logActivity(req.tenant, ACTIONS.UPDATE_ITEM,
+      `Editó producto "${productName}" en colección "${req.params.slug}"`, req.params.id);
+
     res.json({ success: true, data: formatItem(item) });
 
   } catch (err) {
@@ -185,6 +194,9 @@ async function deleteItem(req, res) {
     });
     if (result.deletedCount === 0)
       return res.status(404).json({ success: false, message: 'Item no encontrado.' });
+
+    logActivity(req.tenant, ACTIONS.DELETE_ITEM,
+      `Eliminó producto ID "${req.params.id}" de colección "${req.params.slug}"`, req.params.id);
 
     res.json({ success: true, message: 'Item eliminado.' });
 
@@ -259,6 +271,11 @@ async function sellItem(req, res) {
         stock:   0,
       });
     }
+
+    const soldName = updated.data?.nombre || updated.data?.name || req.params.id;
+    logActivity(req.tenant, ACTIONS.SELL_ITEM,
+      `Vendió ${quantity} unidad(es) de "${soldName}" en "${req.params.slug}". Stock restante: ${updated.data.stock}`,
+      req.params.id);
 
     res.json({
       success: true,
