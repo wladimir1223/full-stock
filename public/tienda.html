@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title id="page-title">Tienda — Full Stock</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: { slate: { 950: '#0a0f1e' } }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* ── Card hover lift ────────────────────────────────────── */
+    .product-card {
+      transition: transform .25s ease, box-shadow .25s ease;
+    }
+    .product-card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 24px 48px rgba(99,102,241,.18);
+    }
+
+    /* ── Skeleton shimmer ────────────────────────────────────── */
+    .skeleton {
+      background: linear-gradient(90deg, #1e293b 25%, #2d3f57 50%, #1e293b 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+      border-radius: .5rem;
+    }
+    @keyframes shimmer { to { background-position: -200% 0; } }
+
+    /* ── Spinner ─────────────────────────────────────────────── */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spin { animation: spin .6s linear infinite; display: inline-block; }
+
+    /* ── Toast ───────────────────────────────────────────────── */
+    @keyframes toastIn  { from{opacity:0;transform:translate(-50%,14px)} to{opacity:1;transform:translate(-50%,0)} }
+    @keyframes toastOut { from{opacity:1;transform:translate(-50%,0)}    to{opacity:0;transform:translate(-50%,14px)} }
+
+    /* ── Collection section separator ───────────────────────── */
+    .collection-title::before {
+      content: '';
+      display: inline-block;
+      width: 4px;
+      height: 1.2em;
+      background: linear-gradient(180deg, #6366f1, #8b5cf6);
+      border-radius: 2px;
+      margin-right: .6rem;
+      vertical-align: middle;
+    }
+
+    /* ── Scrollbar hidden for nav tabs ──────────────────────── */
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+  </style>
+</head>
+
+<body class="dark bg-slate-950 text-slate-100 min-h-screen">
+
+<!-- ═══════════════════════════════════ FIXED NAVBAR ═══ -->
+<nav class="fixed top-0 left-0 right-0 z-40
+            bg-slate-900/95 backdrop-blur-sm
+            border-b border-slate-800 h-14">
+  <div class="max-w-6xl mx-auto px-4 sm:px-6 h-full
+              flex items-center gap-4">
+
+    <!-- Logo -->
+    <a href="#" class="flex items-center gap-2 shrink-0">
+      <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600
+                  flex items-center justify-center shadow-lg">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-white"
+             fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10"/>
+        </svg>
+      </div>
+      <span class="font-bold text-sm hidden sm:inline">
+        <span class="text-white" id="nav-store">Tienda</span>
+      </span>
+    </a>
+
+    <!-- Collection tabs (filled after load) -->
+    <div id="nav-tabs"
+         class="flex items-center gap-1 overflow-x-auto no-scrollbar flex-1 justify-center">
+    </div>
+
+    <!-- Live count -->
+    <span id="nav-count"
+          class="text-xs text-slate-500 shrink-0 hidden sm:block whitespace-nowrap">
+    </span>
+  </div>
+</nav>
+
+
+<!-- ═══════════════════════════════════════ HERO ═══ -->
+<div class="pt-14">
+  <header class="relative overflow-hidden"
+          style="background:linear-gradient(135deg,#0a0f1e 0%,#130d2e 50%,#0e0a1f 100%)">
+
+    <!-- Glow orbs -->
+    <div style="position:absolute;top:-100px;right:-80px;width:480px;height:480px;
+                border-radius:50%;pointer-events:none;
+                background:radial-gradient(circle,rgba(99,102,241,.13) 0%,transparent 70%)"></div>
+    <div style="position:absolute;bottom:-60px;left:-60px;width:320px;height:320px;
+                border-radius:50%;pointer-events:none;
+                background:radial-gradient(circle,rgba(139,92,246,.09) 0%,transparent 70%)"></div>
+
+    <div class="relative max-w-6xl mx-auto px-6 py-14 text-center">
+      <div class="inline-flex items-center gap-2 bg-indigo-500/10 border border-indigo-500/20
+                  text-indigo-400 text-xs font-bold uppercase tracking-widest
+                  px-4 py-1.5 rounded-full mb-5">
+        <span class="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse"></span>
+        Catálogo en vivo
+      </div>
+
+      <h1 class="text-4xl sm:text-5xl font-bold text-white leading-tight mb-3"
+          id="hero-title">Cargando…</h1>
+      <p class="text-slate-400 text-base max-w-md mx-auto" id="hero-sub"></p>
+    </div>
+  </header>
+</div>
+
+
+<!-- ═════════════════════════════ CATALOG SECTIONS ═══ -->
+<main class="max-w-6xl mx-auto px-4 sm:px-6 py-10" id="main">
+
+  <!-- Loading skeletons -->
+  <div id="skeleton-grid"
+       class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
+  </div>
+
+  <!-- Sections injected here after load -->
+  <div id="catalog"></div>
+
+  <!-- Error -->
+  <div id="state-error"
+       class="hidden text-center py-24">
+    <div class="text-5xl mb-4">⚠️</div>
+    <h2 class="text-xl font-bold text-red-400 mb-2">No se pudo cargar la tienda</h2>
+    <p id="error-msg" class="text-slate-500 text-sm mb-6"></p>
+    <button onclick="loadCatalog()"
+            class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm
+                   px-6 py-2.5 rounded-lg transition">
+      Reintentar
+    </button>
+  </div>
+
+  <!-- Empty -->
+  <div id="state-empty"
+       class="hidden text-center py-24">
+    <div class="text-5xl mb-4">📦</div>
+    <h2 class="text-xl font-bold text-slate-300 mb-2">El catálogo está vacío</h2>
+    <p class="text-slate-500 text-sm">
+      Agrega productos desde el panel de administración y aparecerán aquí.
+    </p>
+  </div>
+
+</main>
+
+
+<!-- ═══════════════════════════════════ FOOTER ═══ -->
+<footer class="bg-slate-900 border-t border-slate-800 py-8 mt-4">
+  <div class="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row
+              items-center justify-between gap-3 text-sm">
+    <div class="flex items-center gap-2">
+      <div class="w-6 h-6 rounded-md bg-gradient-to-br from-indigo-500 to-violet-600
+                  flex items-center justify-center">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-white"
+             fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10"/>
+        </svg>
+      </div>
+      <span class="text-slate-300 font-semibold" id="footer-name">Tienda</span>
+    </div>
+    <p class="text-xs text-slate-600 text-center">
+      Inventario gestionado por
+      <span class="text-indigo-500 font-semibold">Full Stock</span>
+      ·
+      <code class="text-slate-700">/api/v1/store/<span id="footer-slug">—</span>/products</code>
+    </p>
+  </div>
+</footer>
+
+
+<!-- ═══════════════════════════════════════════════ SCRIPT ═══ -->
+<script>
+'use strict';
+
+// ─── Configuración ────────────────────────────────────────────────────────────
+// Cambia este valor para apuntar a otro tenant.
+const TENANT = 'administrador';
+
+// Relative URLs — funciona en local (localhost:3000) y en Render sin cambios.
+const CATALOG_URL  = `/api/v1/store/${TENANT}/products`;
+const CHECKOUT_URL = `/api/v1/store/${TENANT}/checkout`;
+
+// ─── Detección de campos por alias ───────────────────────────────────────────
+const ALIASES = {
+  name:  ['nombre','name','titulo','title','producto','item'],
+  price: ['precio','price','costo','cost','valor','value','monto','importe'],
+  desc:  ['descripcion','description','detalle','detail','info','resumen','texto','nota'],
+  img:   ['imagen','image','foto','photo','picture','img','thumbnail','miniatura',
+          'foto_url','image_url','imagen_url'],
+};
+
+function pick(item, type) {
+  for (const k of ALIASES[type]) {
+    const v = item[k];
+    if (v != null && String(v).trim() !== '') return v;
+  }
+  return null;
+}
+
+// ─── Estado global ────────────────────────────────────────────────────────────
+// Guarda { stock } de cada producto por ID para actualizarlos visualmente.
+const stockMap = {};   // { [productId]: number }
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  showSkeletons();
+  loadCatalog();
+});
+
+// ─── Fetch catálogo ───────────────────────────────────────────────────────────
+async function loadCatalog() {
+  hide('state-error'); hide('state-empty'); hide('catalog');
+  show('skeleton-grid');
+
+  try {
+    const res  = await fetch(CATALOG_URL);
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message || 'Error en la API.');
+
+    hide('skeleton-grid');
+
+    const collections = (json.collections || []).filter(c => c.items && c.items.length);
+    const totalItems  = json.totalItems || 0;
+
+    if (collections.length === 0) { show('state-empty'); return; }
+
+    // Actualizar hero
+    const storeLabel = toLabel(TENANT);
+    document.getElementById('hero-title').textContent = storeLabel;
+    document.getElementById('hero-sub').textContent   =
+      `${totalItems} producto${totalItems !== 1 ? 's' : ''} disponible${totalItems !== 1 ? 's' : ''}`;
+    document.getElementById('nav-store').textContent   = storeLabel;
+    document.getElementById('footer-name').textContent = storeLabel;
+    document.getElementById('footer-slug').textContent = TENANT;
+    document.getElementById('nav-count').textContent   =
+      `${totalItems} producto${totalItems !== 1 ? 's' : ''}`;
+    document.title = `${storeLabel} — Full Stock`;
+
+    // Tabs de colección en el navbar
+    buildNavTabs(collections);
+
+    // Renderizar secciones
+    renderCatalog(collections);
+    show('catalog');
+
+  } catch (err) {
+    hide('skeleton-grid');
+    document.getElementById('error-msg').textContent = err.message || 'Error de red.';
+    show('state-error');
+  }
+}
+
+// ─── Tabs de navegación ───────────────────────────────────────────────────────
+function buildNavTabs(collections) {
+  const nav = document.getElementById('nav-tabs');
+  nav.innerHTML = collections.map(col => `
+    <a href="#col-${esc(col.slug)}"
+       class="text-xs font-medium px-3 py-1.5 rounded-md text-slate-400
+              hover:text-white hover:bg-slate-800 transition whitespace-nowrap">
+      ${esc(col.name)}
+    </a>
+  `).join('');
+}
+
+// ─── Render de todas las secciones ───────────────────────────────────────────
+function renderCatalog(collections) {
+  const wrap = document.getElementById('catalog');
+  wrap.innerHTML = '';
+
+  collections.forEach((col, ci) => {
+    const section = document.createElement('section');
+    section.id        = `col-${col.slug}`;
+    section.className = ci > 0 ? 'mt-14' : '';
+
+    // Título de sección
+    const h2 = document.createElement('h2');
+    h2.className = 'collection-title text-xl font-bold text-slate-200 mb-6';
+    h2.textContent = col.name;
+    section.appendChild(h2);
+
+    // Grid
+    const grid = document.createElement('div');
+    grid.className = 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6';
+
+    col.items.forEach(item => {
+      stockMap[item.id] = Number(item.stock ?? 0);
+      grid.appendChild(buildCard(item, col.slug));
+    });
+
+    section.appendChild(grid);
+    wrap.appendChild(section);
+  });
+}
+
+// ─── Tarjeta de producto ──────────────────────────────────────────────────────
+function buildCard(item, collectionSlug) {
+  const name  = pick(item, 'name')  || 'Producto';
+  const price = pick(item, 'price');
+  const desc  = pick(item, 'desc');
+  const img   = pick(item, 'img');
+  const stock = Number(item.stock ?? 0);
+
+  const card = document.createElement('article');
+  card.className = 'product-card bg-slate-900 border border-slate-800 rounded-xl overflow-hidden';
+  card.dataset.id = item.id;
+
+  // ── Imagen ──────────────────────────────────────────────────────────────────
+  const imgHTML = img
+    ? `<img src="${esc(img)}" alt="${esc(name)}"
+            class="w-full h-full object-cover transition duration-500 hover:scale-110"
+            loading="lazy"
+            onerror="this.parentElement.innerHTML='<div class=\\'h-52 bg-slate-800 flex items-center justify-center text-5xl\\'>📦</div>'">`
+    : `<div class="h-52 bg-slate-800 flex items-center justify-center text-5xl">📦</div>`;
+
+  // ── Stock badge ──────────────────────────────────────────────────────────────
+  const stockBadge = buildStockBadge(stock);
+
+  // ── Precio ───────────────────────────────────────────────────────────────────
+  const priceHTML = price != null
+    ? `<span class="inline-block bg-gradient-to-r from-indigo-600 to-violet-600
+                    text-white text-xs font-bold px-2.5 py-0.5 rounded-full">
+         $${Number(price).toFixed(2)}
+       </span>`
+    : '';
+
+  // ── Botón ─────────────────────────────────────────────────────────────────────
+  const btnHTML = stock <= 0
+    ? `<button disabled
+               class="w-full mt-4 py-2.5 rounded-lg text-sm font-semibold
+                      bg-slate-800 text-slate-600 cursor-not-allowed border
+                      border-slate-700 btn-buy">
+         Sin stock
+       </button>`
+    : `<button onclick="comprar('${esc(collectionSlug)}','${esc(item.id)}',this.closest('article'))"
+               class="w-full mt-4 py-2.5 rounded-lg text-sm font-bold
+                      bg-gradient-to-r from-indigo-600 to-violet-600
+                      hover:from-indigo-500 hover:to-violet-500
+                      text-white transition-all duration-200
+                      hover:shadow-lg hover:shadow-indigo-900/40
+                      active:scale-[.97] btn-buy">
+         🛍 Comprar 1 unidad
+       </button>`;
+
+  card.innerHTML = `
+    <!-- Imagen -->
+    <div class="overflow-hidden h-52 bg-slate-800">${imgHTML}</div>
+
+    <!-- Cuerpo -->
+    <div class="p-4">
+      <!-- Nombre + precio -->
+      <div class="flex items-start justify-between gap-2 mb-2">
+        <h3 class="font-bold text-slate-100 text-sm leading-snug flex-1">
+          ${esc(name)}
+        </h3>
+        ${priceHTML}
+      </div>
+
+      <!-- Descripción -->
+      ${desc
+        ? `<p class="text-slate-500 text-xs leading-relaxed mb-3 line-clamp-2">
+             ${esc(desc)}
+           </p>`
+        : '<div class="mb-3"></div>'}
+
+      <!-- Stock -->
+      <div class="stock-badge">${stockBadge}</div>
+
+      <!-- CTA -->
+      ${btnHTML}
+    </div>
+  `;
+
+  return card;
+}
+
+// ─── Comprar ──────────────────────────────────────────────────────────────────
+async function comprar(collectionSlug, productId, cardEl) {
+  const btn = cardEl.querySelector('.btn-buy');
+  if (!btn || btn.disabled) return;
+
+  // Estado de carga en el botón
+  btn.disabled   = true;
+  btn.innerHTML  =
+    '<span class="spin inline-block w-4 h-4 border-2 border-white/30 ' +
+    'border-t-white rounded-full mr-1.5" style="vertical-align:middle"></span>' +
+    'Procesando…';
+
+  try {
+    const res  = await fetch(CHECKOUT_URL, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({
+        items: [{ collectionSlug, productId, quantity: 1 }]
+      }),
+    });
+    const json = await res.json();
+
+    if (json.success) {
+      const orderItem    = json.order.items[0];
+      const nuevoStock   = Number(orderItem.stockRestante);
+      stockMap[productId] = nuevoStock;
+
+      // Actualizar badge de stock en la tarjeta
+      const stockDiv = cardEl.querySelector('.stock-badge');
+      if (stockDiv) stockDiv.innerHTML = buildStockBadge(nuevoStock);
+
+      if (nuevoStock <= 0) {
+        // Deshabilitar botón permanentemente
+        btn.disabled  = true;
+        btn.className = btn.className
+          .replace(/from-indigo-\d+\s+to-violet-\d+/g, '')
+          .replace(/hover:[^\s]+/g, '');
+        btn.style.cssText =
+          'background:#1e293b;color:#475569;cursor:not-allowed;' +
+          'border:1px solid #334155;font-weight:600;font-size:.875rem;' +
+          'width:100%;margin-top:1rem;padding:.625rem;border-radius:.5rem';
+        btn.textContent = 'Sin stock';
+      } else {
+        btn.disabled  = false;
+        btn.innerHTML = '🛍 Comprar 1 unidad';
+      }
+
+      toast('success', `✅ ¡Compra exitosa! Stock restante: ${nuevoStock}`);
+
+    } else {
+      // Error esperado
+      if (json.code === 'INSUFFICIENT_STOCK' || json.code === 'RACE_CONDITION') {
+        stockMap[productId] = 0;
+        const stockDiv = cardEl.querySelector('.stock-badge');
+        if (stockDiv) stockDiv.innerHTML = buildStockBadge(0);
+        btn.disabled  = true;
+        btn.innerHTML = 'Sin stock';
+        btn.style.cssText =
+          'background:#1e293b;color:#475569;cursor:not-allowed;' +
+          'border:1px solid #334155;font-weight:600;font-size:.875rem;' +
+          'width:100%;margin-top:1rem;padding:.625rem;border-radius:.5rem';
+        toast('error', '❌ Producto agotado.');
+      } else {
+        btn.disabled  = false;
+        btn.innerHTML = '🛍 Comprar 1 unidad';
+        toast('error', json.message || 'No se pudo procesar la compra.');
+      }
+    }
+
+  } catch (err) {
+    btn.disabled  = false;
+    btn.innerHTML = '🛍 Comprar 1 unidad';
+    toast('error', '⚠️ Error de conexión. Intenta de nuevo.');
+  }
+}
+
+// ─── Stock badge ──────────────────────────────────────────────────────────────
+function buildStockBadge(n) {
+  n = Number(n ?? 0);
+  if (n <= 0) {
+    return `<span class="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5
+                         rounded-full bg-red-900/40 text-red-400 border border-red-900/40">
+              <span>⚠</span> Agotado
+            </span>`;
+  }
+  if (n <= 5) {
+    return `<span class="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5
+                         rounded-full bg-amber-900/40 text-amber-400 border border-amber-900/40">
+              <span>▲</span> Últimas ${n} unidades
+            </span>`;
+  }
+  return `<span class="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5
+                       rounded-full bg-emerald-900/40 text-emerald-400 border border-emerald-900/40">
+            <span>✓</span> ${n} en stock
+          </span>`;
+}
+
+// ─── Skeletons ────────────────────────────────────────────────────────────────
+function showSkeletons() {
+  document.getElementById('skeleton-grid').innerHTML = Array(8).fill(`
+    <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+      <div class="skeleton h-52 w-full rounded-none"></div>
+      <div class="p-4 space-y-2.5">
+        <div class="flex justify-between gap-2">
+          <div class="skeleton h-4 flex-1"></div>
+          <div class="skeleton h-4 w-16"></div>
+        </div>
+        <div class="skeleton h-3 w-full"></div>
+        <div class="skeleton h-3 w-3/4"></div>
+        <div class="skeleton h-4 w-28 mt-1"></div>
+        <div class="skeleton h-10 w-full mt-2"></div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ─── Toast ────────────────────────────────────────────────────────────────────
+function toast(type, msg) {
+  // Eliminar toast previo si existe
+  const prev = document.querySelector('.fs-toast');
+  if (prev) {
+    prev.style.animation = 'toastOut .2s ease forwards';
+    setTimeout(() => prev.remove(), 200);
+  }
+
+  const colors = {
+    success: 'background:#065f46;border-color:#059669',
+    error:   'background:#7f1d1d;border-color:#991b1b',
+    info:    'background:#1e293b;border-color:#334155',
+  };
+
+  const el = document.createElement('div');
+  el.className = 'fs-toast';
+  el.style.cssText =
+    'position:fixed;bottom:1.5rem;left:50%;' +
+    'transform:translateX(-50%);z-index:9999;' +
+    'display:flex;align-items:center;gap:.625rem;' +
+    'padding:.7rem 1.35rem;border-radius:9999px;border:1px solid;' +
+    'font-size:.875rem;font-weight:600;color:#fff;' +
+    'white-space:nowrap;max-width:calc(100vw - 2rem);' +
+    'box-shadow:0 10px 30px rgba(0,0,0,.4);' +
+    'animation:toastIn .25s ease;' +
+    (colors[type] || colors.info);
+  el.textContent = msg;
+
+  document.body.appendChild(el);
+  setTimeout(() => {
+    if (el.parentNode) {
+      el.style.animation = 'toastOut .25s ease forwards';
+      setTimeout(() => el.remove(), 250);
+    }
+  }, 3200);
+}
+
+// ─── Utilidades ───────────────────────────────────────────────────────────────
+function esc(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function toLabel(slug) {
+  return slug
+    .split(/[-_]/)
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
+}
+
+function show(id) { document.getElementById(id).classList.remove('hidden'); }
+function hide(id) { document.getElementById(id).classList.add('hidden'); }
+</script>
+
+</body>
+</html>
