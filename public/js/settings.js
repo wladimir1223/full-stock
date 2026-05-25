@@ -187,7 +187,7 @@ const Settings = (() => {
       container.querySelector('#cfg-slug').textContent  = data.slug  || '—';
       container.querySelector('#cfg-email').textContent = data.email || '—';
 
-      const storeUrl = `${location.origin}/tienda.html`;
+      const storeUrl = `${location.origin}/tienda.html?tenant=${data.slug}`;
       cfgStoreLink.href        = storeUrl;
       cfgStoreLink.textContent = storeUrl;
       cfgCopy.addEventListener('click', () => {

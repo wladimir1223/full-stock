@@ -344,10 +344,10 @@
 'use strict';
 
 // ─── Config ───────────────────────────────────────────────────────────────────
-// El slug del tenant se lee desde el query param ?t=SLUG de la URL.
-// Ej: /tienda.html?t=julian-repuestos  →  TENANT = 'julian-repuestos'
-// Si no hay query param se usa 'administrador' como fallback de desarrollo.
-const TENANT = new URLSearchParams(window.location.search).get('t') || 'administrador';
+// El slug del tenant se lee desde el query param ?tenant=SLUG de la URL.
+// Ej: /tienda.html?tenant=julian-repuestos  →  TENANT = 'julian-repuestos'
+// Si no hay ?tenant= la tienda NO carga — se muestra un mensaje de error.
+const TENANT = new URLSearchParams(window.location.search).get('tenant') || '';
 const CATALOG_URL  = `/api/v1/store/${TENANT}/products`;
 const CHECKOUT_URL = `/api/v1/store/${TENANT}/checkout`;
 
@@ -448,6 +448,18 @@ document.addEventListener('DOMContentLoaded', () => {
 // ─── Fetch catálogo ───────────────────────────────────────────────────────────
 async function loadCatalog() {
   hide('state-error'); hide('state-empty'); hide('catalog');
+
+  // Sin slug de tenant: mostrar error sin hacer ninguna petición
+  if (!TENANT) {
+    document.getElementById('error-msg').textContent =
+      'Tienda no encontrada. Por favor, solicita el enlace correcto al vendedor.';
+    // Ocultar "Reintentar" — sin slug, reintentar no sirve de nada
+    const retryBtn = document.querySelector('[data-action="reintentar"]');
+    if (retryBtn) retryBtn.style.display = 'none';
+    show('state-error');
+    return;
+  }
+
   show('skeleton-grid');
 
   try {
