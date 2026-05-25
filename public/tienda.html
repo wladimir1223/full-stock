@@ -336,12 +336,15 @@
 'use strict';
 
 // ─── Config ───────────────────────────────────────────────────────────────────
-const TENANT = 'administrador';
+// El slug del tenant se lee desde el query param ?t=SLUG de la URL.
+// Ej: /tienda.html?t=julian-repuestos  →  TENANT = 'julian-repuestos'
+// Si no hay query param se usa 'administrador' como fallback de desarrollo.
+const TENANT = new URLSearchParams(window.location.search).get('t') || 'administrador';
 const CATALOG_URL  = `/api/v1/store/${TENANT}/products`;
 const CHECKOUT_URL = `/api/v1/store/${TENANT}/checkout`;
 
 // ─── Estado global ────────────────────────────────────────────────────────────
-let tenantWhatsapp = '';   // número sin '+', cargado desde la API
+let telefonoTiendaActual = '';   // número sin '+', cargado desde la API del catálogo
 let pendingOrder   = null; // { collectionSlug, productId, name, price }
 
 const stockMap = {};       // { [productId]: currentStock }
@@ -446,8 +449,8 @@ async function loadCatalog() {
 
     hide('skeleton-grid');
 
-    // Guardar número de WhatsApp del tenant
-    tenantWhatsapp = json.tenantWhatsapp || '';
+    // Guardar número de WhatsApp del tenant (sin '+', solo dígitos)
+    telefonoTiendaActual = (json.tenantWhatsapp || '').replace(/\D/g, '');
 
     const collections = (json.collections || []).filter(c => c.items && c.items.length);
     const totalItems  = json.totalItems || 0;
@@ -738,6 +741,12 @@ async function confirmarPedido() {
   }
   errEl.style.display = 'none';
 
+  // Validar que la tienda tiene WhatsApp configurado ANTES de tocar el stock
+  if (!telefonoTiendaActual) {
+    alert('Esta tienda aún no tiene un número de WhatsApp configurado para recibir pedidos.');
+    return; // Mantener modal abierto sin decrementar stock
+  }
+
   const btn = document.getElementById('modal-confirm-btn');
   btn.disabled  = true;
   btn.innerHTML = '<span class="spin"></span> Verificando stock…';
@@ -847,19 +856,11 @@ async function confirmarPedido() {
       `💰 *Total a pagar:* ${totalStr}\n` +
       `\n📅 ${now}`;
 
-    const waNum  = (tenantWhatsapp || '').replace(/\D/g, '');
+    // telefonoTiendaActual ya fue validado arriba y contiene solo dígitos
     const waText = encodeURIComponent(msg);
-    console.log('[confirmarPedido] waNum:', waNum || '(no configurado)');
-
-    if (waNum) {
-      const waUrl = `https://wa.me/${waNum}?text=${waText}`;
-      console.log('[confirmarPedido] abriendo WhatsApp:', waUrl.slice(0, 80) + '…');
-      window.open(waUrl, '_blank');
-    } else {
-      // Si el dueño no configuró su número, copiar el mensaje al clipboard
-      try { await navigator.clipboard.writeText(msg); } catch (_) {}
-      toast('info', '⚠️ El dueño no configuró su WhatsApp. Mensaje copiado al portapapeles.');
-    }
+    const waUrl  = `https://wa.me/${telefonoTiendaActual}?text=${waText}`;
+    console.log('[confirmarPedido] abriendo WhatsApp:', waUrl.slice(0, 80) + '…');
+    window.open(waUrl, '_blank');
 
     cerrarModal();
     toast('success', '✅ ¡Pedido enviado! Revisa WhatsApp para confirmarlo.');
