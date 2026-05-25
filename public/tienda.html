@@ -432,14 +432,20 @@ function buildCard(item, collectionSlug) {
        </span>`
     : '';
 
-  // Botón abre modal en lugar de llamar directamente al checkout
+  // Guardar los datos del producto como data-* para evitar problemas de escapado
+  // en strings interpolados dentro de onclick (apóstrofes, comillas, URLs, etc.)
   const btnHTML = stock <= 0
     ? `<button disabled
                class="w-full mt-4 py-2.5 rounded-lg text-sm font-semibold
                       bg-slate-800 text-slate-600 cursor-not-allowed border
                       border-slate-700 btn-buy">Sin stock</button>`
     : `<button
-         onclick="abrirModal('${esc(collectionSlug)}','${esc(item.id)}','${esc(name)}',${price != null ? Number(price) : 0},'${esc(img||'')}',this.closest('article'))"
+         onclick="abrirModal(this)"
+         data-colslug="${esc(collectionSlug)}"
+         data-id="${esc(item.id)}"
+         data-name="${esc(name)}"
+         data-price="${price != null ? Number(price) : 0}"
+         data-img="${esc(img || '')}"
          class="w-full mt-4 py-2.5 rounded-lg text-sm font-bold
                 bg-gradient-to-r from-indigo-600 to-violet-600
                 hover:from-indigo-500 hover:to-violet-500 text-white
@@ -466,57 +472,83 @@ function buildCard(item, collectionSlug) {
 }
 
 // ─── Abrir modal ─────────────────────────────────────────────────────────────
-function abrirModal(collectionSlug, productId, name, price, img, cardEl) {
-  pendingOrder = { collectionSlug, productId, name, price, cardEl };
+function abrirModal(btnEl) {
+  try {
+    console.log('[abrirModal] click recibido', btnEl);
 
-  // Rellenar resumen del producto
-  document.getElementById('modal-product-name').textContent = name;
-  document.getElementById('modal-product-summary').innerHTML = `
-    ${img
-      ? `<img src="${esc(img)}" alt="${esc(name)}"
-              style="width:3.5rem;height:3.5rem;object-fit:cover;border-radius:.5rem;flex-shrink:0"
-              onerror="this.style.display='none'">`
-      : '<div style="width:3.5rem;height:3.5rem;background:#1e293b;border-radius:.5rem;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1.5rem">📦</div>'}
-    <div>
-      <p style="color:#e2e8f0;font-weight:600;font-size:.875rem;margin:0 0 .2rem">${esc(name)}</p>
-      <p style="color:#6366f1;font-size:.8rem;font-weight:700;margin:0">
-        ${price > 0 ? `$${Number(price).toFixed(2)}` : 'Precio a consultar'}
-        <span style="color:#475569;font-weight:400;font-size:.72rem"> · 1 unidad</span>
-      </p>
-    </div>`;
+    // Leer datos desde los atributos data-* del botón
+    const colslug = btnEl.dataset.colslug;
+    const id      = btnEl.dataset.id;
+    const name    = btnEl.dataset.name;
+    const price   = parseFloat(btnEl.dataset.price) || 0;
+    const img     = btnEl.dataset.img || '';
+    const card    = btnEl.closest('article');
 
-  // Limpiar campos y errores
-  document.getElementById('modal-nombre').value     = '';
-  document.getElementById('modal-direccion').value  = '';
-  document.getElementById('modal-comentario').value = '';
-  document.getElementById('modal-error').style.display = 'none';
+    console.log('[abrirModal] datos leídos:', { colslug, id, name, price, img, card });
 
-  const btn = document.getElementById('modal-confirm-btn');
-  btn.disabled = false;
-  btn.innerHTML = `
-    <svg xmlns="http://www.w3.org/2000/svg" style="width:1.15rem;height:1.15rem;flex-shrink:0"
-         fill="currentColor" viewBox="0 0 24 24">
-      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15
-               -.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463
-               -2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606
-               .134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371
-               -.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51
-               -.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04
-               1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2
-               5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118
-               .571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413
-               -.074-.124-.272-.198-.57-.347z"/>
-      <path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.558 4.126 1.532 5.857L.054 23.25
-               a.75.75 0 00.916.921l5.562-1.48A11.946 11.946 0 0012 24c6.627 0
-               12-5.373 12-12S18.627 0 12 0zm0 22c-1.891 0-3.659-.514-5.175-1.407
-               l-.371-.22-3.844 1.022 1.022-3.742-.242-.386A9.955 9.955 0 012 12
-               C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/>
-    </svg>
-    Enviar pedido por WhatsApp`;
+    if (!colslug || !id) {
+      console.error('[abrirModal] Faltan datos en el dataset del botón:', btnEl.dataset);
+      toast('error', '❌ Error al leer los datos del producto. Recarga la página.');
+      return;
+    }
 
-  document.getElementById('modal-order').style.display = 'flex';
-  document.body.style.overflow = 'hidden';
-  setTimeout(() => document.getElementById('modal-nombre').focus(), 120);
+    pendingOrder = { collectionSlug: colslug, productId: id, name, price, cardEl: card };
+    console.log('[abrirModal] pendingOrder establecido:', pendingOrder);
+
+    // Rellenar resumen del producto
+    document.getElementById('modal-product-name').textContent = name;
+    document.getElementById('modal-product-summary').innerHTML = `
+      ${img
+        ? `<img src="${esc(img)}" alt="${esc(name)}"
+                style="width:3.5rem;height:3.5rem;object-fit:cover;border-radius:.5rem;flex-shrink:0"
+                onerror="this.style.display='none'">`
+        : '<div style="width:3.5rem;height:3.5rem;background:#1e293b;border-radius:.5rem;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1.5rem">📦</div>'}
+      <div>
+        <p style="color:#e2e8f0;font-weight:600;font-size:.875rem;margin:0 0 .2rem">${esc(name)}</p>
+        <p style="color:#6366f1;font-size:.8rem;font-weight:700;margin:0">
+          ${price > 0 ? `$${Number(price).toFixed(2)}` : 'Precio a consultar'}
+          <span style="color:#475569;font-weight:400;font-size:.72rem"> · 1 unidad</span>
+        </p>
+      </div>`;
+
+    // Limpiar campos y errores
+    document.getElementById('modal-nombre').value     = '';
+    document.getElementById('modal-direccion').value  = '';
+    document.getElementById('modal-comentario').value = '';
+    document.getElementById('modal-error').style.display = 'none';
+
+    const btn = document.getElementById('modal-confirm-btn');
+    btn.disabled = false;
+    btn.innerHTML = `
+      <svg xmlns="http://www.w3.org/2000/svg" style="width:1.15rem;height:1.15rem;flex-shrink:0"
+           fill="currentColor" viewBox="0 0 24 24">
+        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15
+                 -.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463
+                 -2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606
+                 .134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371
+                 -.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51
+                 -.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04
+                 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2
+                 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118
+                 .571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413
+                 -.074-.124-.272-.198-.57-.347z"/>
+        <path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.558 4.126 1.532 5.857L.054 23.25
+                 a.75.75 0 00.916.921l5.562-1.48A11.946 11.946 0 0012 24c6.627 0
+                 12-5.373 12-12S18.627 0 12 0zm0 22c-1.891 0-3.659-.514-5.175-1.407
+                 l-.371-.22-3.844 1.022 1.022-3.742-.242-.386A9.955 9.955 0 012 12
+                 C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/>
+      </svg>
+      Enviar pedido por WhatsApp`;
+
+    document.getElementById('modal-order').style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+    setTimeout(() => document.getElementById('modal-nombre').focus(), 120);
+    console.log('[abrirModal] modal abierto correctamente');
+
+  } catch (err) {
+    console.error('[abrirModal] Error inesperado:', err);
+    toast('error', '❌ Error inesperado al abrir el modal. Recarga la página.');
+  }
 }
 
 function cerrarModal() {
@@ -532,7 +564,11 @@ document.addEventListener('keydown', e => {
 
 // ─── Confirmar pedido ─────────────────────────────────────────────────────────
 async function confirmarPedido() {
-  if (!pendingOrder) return;
+  console.log('[confirmarPedido] inicio — pendingOrder:', pendingOrder);
+  if (!pendingOrder) {
+    console.error('[confirmarPedido] pendingOrder es null, abortando');
+    return;
+  }
 
   const nombre    = document.getElementById('modal-nombre').value.trim();
   const direccion = document.getElementById('modal-direccion').value.trim();
@@ -560,6 +596,11 @@ async function confirmarPedido() {
 
   try {
     // ── Fase 1: descontar stock en el backend ──────────────────────────────
+    console.log('[confirmarPedido] enviando checkout a:', CHECKOUT_URL, {
+      collectionSlug: pendingOrder.collectionSlug,
+      productId: pendingOrder.productId,
+    });
+
     const res  = await fetch(CHECKOUT_URL, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -572,8 +613,10 @@ async function confirmarPedido() {
       }),
     });
     const json = await res.json();
+    console.log('[confirmarPedido] respuesta del backend:', json);
 
     if (!json.success) {
+      console.warn('[confirmarPedido] backend devolvió error:', json.code, json.message);
       // Error de stock
       if (json.code === 'INSUFFICIENT_STOCK' || json.code === 'RACE_CONDITION') {
         // Actualizar tarjeta visualmente
@@ -608,6 +651,7 @@ async function confirmarPedido() {
     // ── Fase 2: stock descontado OK → actualizar tarjeta ──────────────────
     const orderItem  = json.order.items[0];
     const nuevoStock = Number(orderItem.stockRestante);
+    console.log('[confirmarPedido] stock restante:', nuevoStock);
     stockMap[pendingOrder.productId] = nuevoStock;
 
     if (pendingOrder.cardEl) {
@@ -647,11 +691,14 @@ async function confirmarPedido() {
       `\n💰 *Total:* ${precio}\n` +
       `\n📅 ${now}`;
 
-    const waNum  = tenantWhatsapp.replace(/\D/g, '');
+    const waNum  = (tenantWhatsapp || '').replace(/\D/g, '');
     const waText = encodeURIComponent(msg);
+    console.log('[confirmarPedido] waNum:', waNum || '(no configurado)');
 
     if (waNum) {
-      window.open(`https://wa.me/${waNum}?text=${waText}`, '_blank');
+      const waUrl = `https://wa.me/${waNum}?text=${waText}`;
+      console.log('[confirmarPedido] abriendo WhatsApp:', waUrl.slice(0, 80) + '…');
+      window.open(waUrl, '_blank');
     } else {
       // Si el dueño no configuró su número, copiar el mensaje al clipboard
       try { await navigator.clipboard.writeText(msg); } catch (_) {}
@@ -660,8 +707,10 @@ async function confirmarPedido() {
 
     cerrarModal();
     toast('success', '✅ ¡Pedido enviado! Revisa WhatsApp para confirmarlo.');
+    console.log('[confirmarPedido] flujo completado con éxito');
 
   } catch (err) {
+    console.error('[confirmarPedido] error inesperado:', err);
     errEl.textContent   = '⚠️ Error de conexión. Intenta de nuevo.';
     errEl.style.display = '';
     btn.disabled  = false;
