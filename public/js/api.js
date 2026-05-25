@@ -132,6 +132,10 @@ var API = {
       return request('GET', '/api/v1/superadmin/tenants');
     },
   },
+  settings: {
+    get:    function()       { return request('GET', '/admin/settings'); },
+    update: function(data)   { return request('PUT', '/admin/settings', data); },
+  },
 };
 
 window.API  = API;

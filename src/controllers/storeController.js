@@ -89,11 +89,13 @@ async function catalog(req, res) {
     );
 
     res.json({
-      success:     true,
-      tenant:      tenant.slug,
-      collections: data,
+      success:         true,
+      tenant:          tenant.slug,
+      tenantName:      tenant.name     || '',
+      tenantWhatsapp:  tenant.whatsapp || '',
+      collections:     data,
       // Conteo rápido útil para debug del frontend
-      totalItems:  data.reduce((acc, c) => acc + c.items.length, 0),
+      totalItems:      data.reduce((acc, c) => acc + c.items.length, 0),
     });
 
   } catch (err) {

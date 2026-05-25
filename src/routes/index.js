@@ -191,6 +191,68 @@ router.get('/api/v1/store/:tenantSlug/products', storeCtrl.catalog);
 router.post('/api/v1/store/:tenantSlug/checkout', checkoutLimiter, storeCtrl.checkout);
 
 // ════════════════════════════════════════════════════════════════
+// ADMIN — Configuración del tenant (protegido)
+// ════════════════════════════════════════════════════════════════
+
+// GET /admin/settings — devuelve nombre, email, slug, whatsapp del tenant
+router.get('/admin/settings', requireAuth, async (req, res) => {
+  try {
+    const User = require('../models/User');
+    const user = await User.findById(req.tenant.id).lean();
+    if (!user) return res.status(404).json({ success: false, message: 'Cuenta no encontrada.' });
+    res.json({
+      success: true,
+      data: {
+        name:     user.name,
+        email:    user.email,
+        slug:     user.slug,
+        whatsapp: user.whatsapp || '',
+      },
+    });
+  } catch (err) {
+    console.error('[settings:get]', err);
+    res.status(500).json({ success: false, message: 'Error al obtener la configuración.' });
+  }
+});
+
+// PUT /admin/settings — actualiza whatsapp (y opcionalmente nombre)
+router.put('/admin/settings', requireAuth, async (req, res) => {
+  try {
+    const User = require('../models/User');
+    const { whatsapp, name } = req.body;
+    const update = {};
+
+    if (whatsapp !== undefined) {
+      // Solo dígitos — formato internacional sin '+' (ej: "56912345678")
+      update.whatsapp = String(whatsapp).replace(/\D/g, '').slice(0, 20);
+    }
+    if (name && typeof name === 'string' && name.trim()) {
+      update.name = name.trim();
+    }
+
+    const user = await User.findByIdAndUpdate(
+      req.tenant.id,
+      { $set: update },
+      { new: true }
+    );
+    if (!user) return res.status(404).json({ success: false, message: 'Cuenta no encontrada.' });
+
+    logActivity(
+      req.tenant, 'update_settings',
+      `Actualizó configuración: ${Object.keys(update).join(', ')}`
+    );
+
+    res.json({
+      success: true,
+      data: { name: user.name, email: user.email, slug: user.slug, whatsapp: user.whatsapp || '' },
+    });
+  } catch (err) {
+    console.error('[settings:put]', err);
+    res.status(500).json({ success: false, message: 'Error al guardar la configuración.' });
+  }
+});
+
+// ════════════════════════════════════════════════════════════════
 // ADMIN — Colecciones (protegido)
 // ════════════════════════════════════════════════════════════════
 

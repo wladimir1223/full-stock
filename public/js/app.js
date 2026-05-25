@@ -38,11 +38,12 @@ const App = (() => {
    */
   function getPanels() {
     const base = {
-      catalog: { label: '🗂️ Mis Categorías', module: () => Catalog },
-      content: { label: '📦 Mis Productos',  module: () => Content },
+      catalog:  { label: '🗂️ Mis Categorías', module: () => Catalog },
+      content:  { label: '📦 Mis Productos',  module: () => Content },
+      settings: { label: '⚙️ Configuración',  module: () => Settings },
     };
     if (isDevMode()) {
-      base.builder = { label: '⚙️ Builder', module: () => Builder, devOnly: true };
+      base.builder = { label: '🔧 Builder', module: () => Builder, devOnly: true };
     }
     if (isSuperAdmin()) {
       base.monitor = { label: '🔭 Monitoreo Global', module: () => SuperAdmin };
