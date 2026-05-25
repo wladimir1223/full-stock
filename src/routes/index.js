@@ -43,7 +43,7 @@ const { requireAuth }                        = require('../middleware/auth');
 const { requireSuperAdmin }                  = require('../middleware/requireSuperAdmin');
 const { authLimiter, checkoutLimiter }       = require('../middleware/security');
 const storeCtrl                              = require('../controllers/storeController');
-const { ActivityLog }                        = require('../models/ActivityLog');
+const { ActivityLog, logActivity }           = require('../models/ActivityLog');
 
 // ════════════════════════════════════════════════════════════════
 // AUTH — Registro, Login y Recuperación
@@ -151,7 +151,7 @@ router.get('/api/v1/superadmin/logs', requireAuth, requireSuperAdmin, async (req
 router.get('/api/v1/superadmin/tenants', requireAuth, requireSuperAdmin, async (req, res) => {
   try {
     const User = require('../models/User');
-    const tenants = await User.find({}, 'name slug email role createdAt').sort({ createdAt: -1 }).lean();
+    const tenants = await User.find({}, 'name slug email role plan createdAt').sort({ createdAt: -1 }).lean();
 
     // Conteo de logs por tenant
     const counts = await ActivityLog.aggregate([
@@ -165,6 +165,7 @@ router.get('/api/v1/superadmin/tenants', requireAuth, requireSuperAdmin, async (
       slug:        t.slug,
       email:       t.email,
       role:        t.role,
+      plan:        t.plan || 'basic',
       createdAt:   t.createdAt,
       activityCount: countMap[t._id.toString()]?.total || 0,
       lastActivity:  countMap[t._id.toString()]?.last  || null,
@@ -174,6 +175,35 @@ router.get('/api/v1/superadmin/tenants', requireAuth, requireSuperAdmin, async (
   } catch (err) {
     console.error('[superadmin:tenants]', err);
     res.status(500).json({ success: false, message: 'Error al obtener tenants.' });
+  }
+});
+
+// PUT /api/v1/superadmin/tenants/:id/plan
+//   SuperAdmin cambia el plan de un tenant (basic | pro | full).
+router.put('/api/v1/superadmin/tenants/:id/plan', requireAuth, requireSuperAdmin, async (req, res) => {
+  try {
+    const User = require('../models/User');
+    const VALID_PLANS = ['basic', 'pro', 'full'];
+    const { plan } = req.body;
+
+    if (!VALID_PLANS.includes(plan)) {
+      return res.status(400).json({ success: false, message: `Plan inválido. Valores válidos: ${VALID_PLANS.join(', ')}.` });
+    }
+
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      { $set: { plan } },
+      { new: true }
+    );
+    if (!user) return res.status(404).json({ success: false, message: 'Tenant no encontrado.' });
+
+    logActivity(req.tenant, 'update_plan',
+      `SuperAdmin cambió plan de @${user.slug} → "${plan}"`);
+
+    res.json({ success: true, data: { id: user._id.toString(), slug: user.slug, name: user.name, plan: user.plan } });
+  } catch (err) {
+    console.error('[superadmin:updatePlan]', err);
+    res.status(500).json({ success: false, message: 'Error al actualizar el plan.' });
   }
 });
 
@@ -249,6 +279,25 @@ router.put('/admin/settings', requireAuth, async (req, res) => {
   } catch (err) {
     console.error('[settings:put]', err);
     res.status(500).json({ success: false, message: 'Error al guardar la configuración.' });
+  }
+});
+
+// GET /admin/plan-usage
+//   Devuelve el plan actual del tenant y cuántos productos tiene vs. el límite.
+router.get('/admin/plan-usage', requireAuth, async (req, res) => {
+  try {
+    const User = require('../models/User');
+    const PLAN_LIMITS = { basic: 35, pro: 100, full: 200 };
+
+    const user    = await User.findById(req.tenant.id).select('plan').lean();
+    const plan    = (user && user.plan) || 'basic';
+    const limit   = PLAN_LIMITS[plan] ?? 35;
+    const current = await Item.countDocuments({ tenantId: req.tenant.id });
+
+    res.json({ success: true, data: { plan, limit, current } });
+  } catch (err) {
+    console.error('[planUsage:get]', err);
+    res.status(500).json({ success: false, message: 'Error al obtener uso del plan.' });
   }
 });
 

@@ -20,7 +20,26 @@ const SuperAdmin = (() => {
     'checkout':          { bg: '#022c22', border: '#065f46', color: '#6ee7b7',  label: 'Checkout público' },
     'user_register':     { bg: '#0c2a4a', border: '#1d4ed8', color: '#7dd3fc',  label: 'Registro' },
     'user_login':        { bg: '#1e293b', border: '#334155', color: '#94a3b8',  label: 'Login' },
+    'update_plan':       { bg: '#1c1917', border: '#92400e', color: '#fde68a',  label: 'Cambio de plan' },
+    'update_settings':   { bg: '#0f2617', border: '#166534', color: '#86efac',  label: 'Config. tienda' },
   };
+
+  // ─── Plan badge ───────────────────────────────────────────────────────────
+  const PLAN_STYLES = {
+    basic: { bg: '#1e293b', border: '#334155', color: '#94a3b8', label: 'Basic'   },
+    pro:   { bg: '#1e1b4b', border: '#4338ca', color: '#a5b4fc', label: 'Pro ✨'  },
+    full:  { bg: '#2e1065', border: '#7c3aed', color: '#c4b5fd', label: 'Full 🚀' },
+  };
+
+  function planBadge(plan) {
+    const s = PLAN_STYLES[plan] || PLAN_STYLES.basic;
+    return `<span class="plan-badge-span"
+                  style="background:${s.bg};border:1px solid ${s.border};color:${s.color};
+                         font-size:.68rem;font-weight:700;padding:.18rem .55rem;
+                         border-radius:.375rem;display:inline-block">
+              ${escHtml(s.label)}
+            </span>`;
+  }
 
   function actionBadge(action) {
     const s = ACTION_STYLES[action] || { bg: '#1e293b', border: '#334155', color: '#64748b', label: action };
@@ -59,9 +78,7 @@ const SuperAdmin = (() => {
             <input id="sa-filter-tenant" type="text" placeholder="Filtrar por slug…"
               style="background:#0f172a;border:1px solid #334155;border-radius:.5rem;
                      color:#f1f5f9;padding:.4rem .75rem;font-size:.8rem;outline:none;
-                     width:150px;transition:border-color .15s"
-              onfocus="this.style.borderColor='#6366f1'"
-              onblur="this.style.borderColor='#334155'"/>
+                     width:150px;transition:border-color .15s"/>
 
             <select id="sa-filter-limit"
               style="background:#0f172a;border:1px solid #334155;border-radius:.5rem;
@@ -117,7 +134,11 @@ const SuperAdmin = (() => {
           </div>
         </div>
 
-        <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+        <style>
+          @keyframes spin{to{transform:rotate(360deg)}}
+          .sa-hover-row:hover { background:#162032; }
+          .plan-select:focus  { outline:none; border-color:#6366f1; }
+        </style>
       </div>
     `;
 
@@ -153,6 +174,10 @@ const SuperAdmin = (() => {
         refreshBtn.style.opacity = '1';
       }
     }
+
+    // Focus ring CSP-safe (sin onfocus/onblur inline)
+    filterTenant.addEventListener('focus', () => { filterTenant.style.borderColor = '#6366f1'; });
+    filterTenant.addEventListener('blur',  () => { filterTenant.style.borderColor = '#334155'; });
 
     refreshBtn.addEventListener('click', load);
     filterLimit.addEventListener('change', load);
@@ -197,9 +222,7 @@ const SuperAdmin = (() => {
     }
 
     const rows = logs.map(log => `
-      <tr style="border-bottom:1px solid #1e293b;transition:background .1s"
-          onmouseover="this.style.background='#162032'"
-          onmouseout="this.style.background=''">
+      <tr class="sa-hover-row" style="border-bottom:1px solid #1e293b;transition:background .1s">
         <td style="padding:.6rem 1rem;white-space:nowrap;font-size:.75rem;color:#64748b">
           ${escHtml(formatDate(log.createdAt))}
         </td>
@@ -240,18 +263,20 @@ const SuperAdmin = (() => {
   // ─── Tabla de tenants ─────────────────────────────────────────────────────
 
   function renderTenants(container, tenants) {
+    const wrap = container.querySelector('#sa-tenants-wrap');
+
     if (tenants.length === 0) {
-      container.querySelector('#sa-tenants-wrap').innerHTML =
+      wrap.innerHTML =
         `<div style="padding:1.5rem;text-align:center;color:#475569;font-size:.875rem">
            No hay tenants registrados.
          </div>`;
       return;
     }
 
-    const rows = tenants.map(t => `
-      <tr style="border-bottom:1px solid #1e293b;transition:background .1s"
-          onmouseover="this.style.background='#162032'"
-          onmouseout="this.style.background=''">
+    const rows = tenants.map(t => {
+      const plan = t.plan || 'basic';
+      return `
+      <tr class="sa-hover-row" style="border-bottom:1px solid #1e293b;transition:background .1s">
         <td style="padding:.6rem 1rem">
           <span style="color:#e2e8f0;font-size:.82rem;font-weight:500">
             ${escHtml(t.name || '—')}
@@ -271,6 +296,22 @@ const SuperAdmin = (() => {
                             font-size:.68rem;font-weight:500;padding:.18rem .55rem;
                             border-radius:.375rem">Tenant</span>`}
         </td>
+        <td style="padding:.6rem 1rem">
+          ${planBadge(plan)}
+          ${t.role !== 'superadmin' ? `
+          <br>
+          <select class="plan-select"
+            data-tenant-id="${escHtml(t.id)}"
+            data-current-plan="${escHtml(plan)}"
+            style="margin-top:.35rem;background:#0f172a;border:1px solid #334155;
+                   border-radius:.375rem;color:#f1f5f9;font-size:.68rem;
+                   padding:.2rem .5rem;cursor:pointer;outline:none;
+                   transition:border-color .15s">
+            <option value="basic" ${plan === 'basic' ? 'selected' : ''}>Basic  (35 prod.)</option>
+            <option value="pro"   ${plan === 'pro'   ? 'selected' : ''}>Pro    (100 prod.)</option>
+            <option value="full"  ${plan === 'full'  ? 'selected' : ''}>Full   (200 prod.)</option>
+          </select>` : ''}
+        </td>
         <td style="padding:.6rem 1rem;font-size:.78rem;color:#64748b">
           ${t.activityCount || 0} acciones
           ${t.lastActivity
@@ -283,9 +324,9 @@ const SuperAdmin = (() => {
           ${escHtml(formatDate(t.createdAt))}
         </td>
       </tr>
-    `).join('');
+    `}).join('');
 
-    container.querySelector('#sa-tenants-wrap').innerHTML = `
+    wrap.innerHTML = `
       <div style="overflow-x:auto">
         <table style="width:100%;border-collapse:collapse">
           <thead>
@@ -293,6 +334,7 @@ const SuperAdmin = (() => {
               ${th('Negocio')}
               ${th('Email')}
               ${th('Rol')}
+              ${th('Plan')}
               ${th('Actividad')}
               ${th('Registrado')}
             </tr>
@@ -301,6 +343,41 @@ const SuperAdmin = (() => {
         </table>
       </div>
     `;
+
+    // ── Bind plan selectors (CSP-safe — sin onchange inline) ──────────────
+    wrap.querySelectorAll('.plan-select').forEach(sel => {
+      sel.addEventListener('change', async function () {
+        const tenantId  = this.dataset.tenantId;
+        const newPlan   = this.value;
+        const prevPlan  = this.dataset.currentPlan;
+
+        this.disabled = true;
+        try {
+          await API.superadmin.updatePlan(tenantId, newPlan);
+          this.dataset.currentPlan = newPlan;
+
+          // Actualizar el badge en la misma celda
+          const badge = this.closest('td')?.querySelector('.plan-badge-span');
+          if (badge) {
+            const s = PLAN_STYLES[newPlan] || PLAN_STYLES.basic;
+            badge.style.background  = s.bg;
+            badge.style.borderColor = s.border;
+            badge.style.color       = s.color;
+            badge.textContent       = s.label;
+          }
+
+          if (window.App) window.App.showToast(`Plan de @${tenantId.slice(0,6)}… → ${newPlan}`, 'success');
+        } catch (err) {
+          this.value = prevPlan;   // revertir visualmente
+          if (window.App) window.App.showToast(
+            (err && err.message) ? err.message : 'Error al actualizar el plan.',
+            'error'
+          );
+        } finally {
+          this.disabled = false;
+        }
+      });
+    });
   }
 
   // ─── Helpers de UI ────────────────────────────────────────────────────────

@@ -21,6 +21,8 @@ const userSchema = new mongoose.Schema(
     email:        { type: String, required: true, unique: true, lowercase: true, trim: true },
     passwordHash: { type: String, required: true },
     role:         { type: String, enum: ['tenant', 'superadmin'], default: 'tenant' },
+    // Plan de suscripción — controla el límite de productos del catálogo
+    plan:         { type: String, enum: ['basic', 'pro', 'full'], default: 'basic' },
     // Número WhatsApp en formato internacional sin '+' (ej: "56912345678")
     whatsapp:     { type: String, default: '' },
   },

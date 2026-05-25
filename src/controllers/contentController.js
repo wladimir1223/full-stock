@@ -10,8 +10,12 @@
 
 const Collection                = require('../models/Collection');
 const Item                      = require('../models/Item');
+const User                      = require('../models/User');
 const mongoose                  = require('mongoose');
 const { logActivity, ACTIONS }  = require('../models/ActivityLog');
+
+// Límite de productos por plan  ← único lugar donde se define
+const PLAN_LIMITS = { basic: 35, pro: 100, full: 200 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -123,6 +127,24 @@ async function createItem(req, res) {
   try {
     const col = await Collection.findOne({ tenantId: req.tenant.id, slug: req.params.slug });
     if (!col) return res.status(404).json({ success: false, message: 'Colección no encontrada.' });
+
+    // ── Plan limit check ────────────────────────────────────────────────────
+    const user    = await User.findById(req.tenant.id).select('plan').lean();
+    const plan    = (user && user.plan) || 'basic';
+    const limit   = PLAN_LIMITS[plan] ?? PLAN_LIMITS.basic;
+    const current = await Item.countDocuments({ tenantId: req.tenant.id });
+    if (current >= limit) {
+      return res.status(403).json({
+        success: false,
+        code:    'PLAN_LIMIT_REACHED',
+        plan,
+        limit,
+        current,
+        message: `Límite alcanzado: tu plan "${plan}" permite hasta ${limit} productos. ` +
+                 `Contacta al administrador para subir de nivel.`,
+      });
+    }
+    // ────────────────────────────────────────────────────────────────────────
 
     const { errors, data } = validateAndSanitize(col.fields, req.body);
     if (errors.length > 0) return res.status(400).json({ success: false, errors });

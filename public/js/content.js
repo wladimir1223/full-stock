@@ -96,6 +96,55 @@ const Content = (() => {
     await renderTable(container, opts || {});
   }
 
+  // ─── Helpers de plan ──────────────────────────────────────────────────────
+
+  const PLAN_META = {
+    basic: { label: 'Basic',   bg: '#1e293b', border: '#334155', color: '#94a3b8', limit: 35  },
+    pro:   { label: 'Pro ✨',  bg: '#1e1b4b', border: '#4338ca', color: '#a5b4fc', limit: 100 },
+    full:  { label: 'Full 🚀', bg: '#2e1065', border: '#7c3aed', color: '#c4b5fd', limit: 200 },
+  };
+
+  function buildUsageBar(usage) {
+    const meta    = PLAN_META[usage.plan] || PLAN_META.basic;
+    const pct     = Math.min(100, Math.round((usage.current / usage.limit) * 100));
+    const atLimit = usage.current >= usage.limit;
+    const barColor = pct >= 100 ? '#ef4444' : pct >= 80 ? '#f59e0b' : '#22c55e';
+
+    return `
+      <div class="card mb-5" style="padding:1rem">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.6rem">
+          <div style="display:flex;align-items:center;gap:.625rem">
+            <span style="font-size:.72rem;font-weight:600;color:#94a3b8;text-transform:uppercase;
+                         letter-spacing:.06em">Uso del Catálogo</span>
+            <span style="background:${meta.bg};border:1px solid ${meta.border};color:${meta.color};
+                         font-size:.65rem;font-weight:700;padding:.18rem .55rem;
+                         border-radius:.375rem;text-transform:uppercase;letter-spacing:.05em">
+              ${meta.label}
+            </span>
+          </div>
+          <span style="font-size:.78rem;font-weight:700;color:${atLimit ? '#f87171' : '#94a3b8'}">
+            ${usage.current} / ${usage.limit} productos
+          </span>
+        </div>
+        <!-- barra de progreso -->
+        <div style="background:#0f172a;border-radius:9999px;height:8px;overflow:hidden">
+          <div style="height:8px;border-radius:9999px;width:${pct}%;
+                      background:${barColor};transition:width .5s ease"></div>
+        </div>
+        ${atLimit ? `
+        <div style="margin-top:.625rem;display:flex;align-items:center;gap:.5rem;
+                    background:#450a0a;border:1px solid #7f1d1d;border-radius:.5rem;
+                    padding:.5rem .875rem">
+          <span style="font-size:1rem">⛔</span>
+          <span style="font-size:.78rem;font-weight:600;color:#fca5a5">
+            Has alcanzado el límite de tu plan.
+            Contacta al administrador para subir de nivel.
+          </span>
+        </div>` : ''}
+      </div>
+    `;
+  }
+
   // ─── Tabla ────────────────────────────────────────────────────────────────
 
   async function renderTable(container, opts) {
@@ -104,9 +153,16 @@ const Content = (() => {
     main.innerHTML = '<div class="text-slate-400 text-sm">Cargando datos…</div>';
 
     try {
-      const schema   = await API.collections.get(activeSlug);
-      activeSchema   = schema.data;
-      const { data } = await API.items.list(activeSlug);
+      // Fetch en paralelo: esquema, items y uso del plan
+      const [schemaRes, itemsRes, usageRes] = await Promise.all([
+        API.collections.get(activeSlug),
+        API.items.list(activeSlug),
+        API.planUsage.get().catch(() => ({ data: { plan: 'basic', limit: 35, current: 0 } })),
+      ]);
+      activeSchema    = schemaRes.data;
+      const data      = itemsRes.data;
+      const usage     = (usageRes && usageRes.data) || { plan: 'basic', limit: 35, current: 0 };
+      const atLimit   = usage.current >= usage.limit;
 
       main.innerHTML = `
         <div class="flex items-center justify-between mb-4">
@@ -116,10 +172,13 @@ const Content = (() => {
               API pública: <code class="text-emerald-400">/api/v1/${Auth.getTenantSlug()}/collections/${activeSlug}</code>
             </p>
           </div>
-          <button id="new-item-btn" class="btn-primary">
+          <button id="new-item-btn" class="btn-primary" ${atLimit ? 'disabled title="Límite de plan alcanzado"' : ''}>
             + Añadir ${activeSchema.name.replace(/s$/, '')}
           </button>
         </div>
+
+        ${buildUsageBar(usage)}
+
         <div id="item-form-wrapper" class="hidden card mb-5 animate-fade-in"></div>
         <div class="overflow-x-auto rounded-xl border border-slate-700">
           <table class="w-full text-sm">
@@ -141,11 +200,22 @@ const Content = (() => {
         </div>
       `;
 
-      main.querySelector('#new-item-btn').addEventListener('click', () => openForm(main));
+      // Listeners de fila
+      if (!atLimit) {
+        main.querySelector('#new-item-btn').addEventListener('click', () => openForm(main));
+      }
       bindRowActions(main, data);
 
-      // Si viene desde "Crear Nueva Categoría", abrir el form automáticamente
-      if (opts.autoOpenForm) {
+      // CSP-safe: onerror de imágenes vía addEventListener
+      main.querySelectorAll('#items-tbody img').forEach(img => {
+        img.addEventListener('error', function () {
+          this.style.display = 'none';
+          const fallback = this.nextElementSibling;
+          if (fallback) fallback.style.display = 'flex';
+        });
+      });
+
+      if (opts.autoOpenForm && !atLimit) {
         openForm(main);
         main.querySelector('#item-form-wrapper')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
@@ -179,7 +249,6 @@ const Content = (() => {
         return `<td class="px-4 py-3">
           <img src="${escHtml(val)}" alt="" class="w-12 h-12 object-cover rounded-lg border border-slate-700"
             loading="lazy"
-            onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"
           />
           <div style="display:none"
             class="w-12 h-12 rounded-lg border border-slate-700 bg-slate-800 items-center justify-center text-slate-500 text-xs">

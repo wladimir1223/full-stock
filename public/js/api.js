@@ -131,10 +131,16 @@ var API = {
     tenants: function() {
       return request('GET', '/api/v1/superadmin/tenants');
     },
+    updatePlan: function(tenantId, plan) {
+      return request('PUT', '/api/v1/superadmin/tenants/' + tenantId + '/plan', { plan: plan });
+    },
   },
   settings: {
     get:    function()       { return request('GET', '/admin/settings'); },
     update: function(data)   { return request('PUT', '/admin/settings', data); },
+  },
+  planUsage: {
+    get: function() { return request('GET', '/admin/plan-usage'); },
   },
 };
 
