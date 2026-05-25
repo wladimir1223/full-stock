@@ -55,6 +55,10 @@
     /* Input focus ring */
     .modal-input:focus { border-color:#6366f1 !important;
                           box-shadow:0 0 0 3px rgba(99,102,241,.2); }
+
+    /* CSP-safe hover — sin onmouseover/onmouseout inline */
+    .btn-modal-close { color:#475569; transition:color .15s; }
+    .btn-modal-close:hover { color:#94a3b8; }
   </style>
 </head>
 
@@ -117,7 +121,7 @@
     <div class="text-5xl mb-4">⚠️</div>
     <h2 class="text-xl font-bold text-red-400 mb-2">No se pudo cargar la tienda</h2>
     <p id="error-msg" class="text-slate-500 text-sm mb-6"></p>
-    <button onclick="loadCatalog()"
+    <button data-action="reintentar"
             class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm
                    px-6 py-2.5 rounded-lg transition">Reintentar</button>
   </div>
@@ -160,8 +164,7 @@
   <!-- Backdrop -->
   <div id="modal-bd"
        style="position:absolute;inset:0;background:rgba(0,0,0,.75);
-              backdrop-filter:blur(4px)"
-       onclick="cerrarModal()"></div>
+              backdrop-filter:blur(4px)"></div>
 
   <!-- Card -->
   <div style="position:relative;width:100%;max-width:440px;
@@ -179,11 +182,10 @@
         <p id="modal-product-name"
            style="color:#6366f1;font-size:.78rem;font-weight:600;margin:0"></p>
       </div>
-      <button onclick="cerrarModal()"
-              style="background:none;border:none;cursor:pointer;color:#475569;
-                     padding:.3rem;border-radius:.375rem;transition:color .15s"
-              onmouseover="this.style.color='#94a3b8'"
-              onmouseout="this.style.color='#475569'">
+      <button data-action="cerrar-modal"
+              class="btn-modal-close"
+              style="background:none;border:none;cursor:pointer;
+                     padding:.3rem;border-radius:.375rem">
         <svg xmlns="http://www.w3.org/2000/svg" style="width:1.1rem;height:1.1rem"
              fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
           <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
@@ -253,7 +255,6 @@
 
       <!-- Botón confirmar -->
       <button id="modal-confirm-btn"
-        onclick="confirmarPedido()"
         style="width:100%;padding:.75rem;border-radius:.625rem;border:none;cursor:pointer;
                background:linear-gradient(135deg,#25d366,#128c7e);
                color:#fff;font-weight:700;font-size:.9rem;
@@ -323,6 +324,43 @@ function pick(item, type) {
 document.addEventListener('DOMContentLoaded', () => {
   showSkeletons();
   loadCatalog();
+
+  // ── Delegated click handler (CSP-safe: sin ningún onclick="..." en el HTML) ──
+  // Un único listener en document captura todos los clics de la página.
+  document.addEventListener('click', function (e) {
+
+    // 1. Botón "Comprar" de una tarjeta de producto
+    const buyBtn = e.target.closest('[data-action="comprar"]');
+    if (buyBtn) {
+      if (!buyBtn.disabled) abrirModal(buyBtn);
+      return;
+    }
+
+    // 2. Cerrar modal — backdrop semitransparente
+    if (e.target.id === 'modal-bd') {
+      cerrarModal();
+      return;
+    }
+
+    // 3. Cerrar modal — botón ✕
+    if (e.target.closest('[data-action="cerrar-modal"]')) {
+      cerrarModal();
+      return;
+    }
+
+    // 4. Confirmar pedido
+    const confirmBtn = e.target.closest('#modal-confirm-btn');
+    if (confirmBtn) {
+      if (!confirmBtn.disabled) confirmarPedido();
+      return;
+    }
+
+    // 5. Reintentar carga del catálogo
+    if (e.target.closest('[data-action="reintentar"]')) {
+      loadCatalog();
+      return;
+    }
+  });
 });
 
 // ─── Fetch catálogo ───────────────────────────────────────────────────────────
@@ -421,8 +459,7 @@ function buildCard(item, collectionSlug) {
   const imgHTML = img
     ? `<img src="${esc(img)}" alt="${esc(name)}"
             class="w-full h-full object-cover transition duration-500 hover:scale-110"
-            loading="lazy"
-            onerror="this.parentElement.innerHTML='<div class=\\'h-52 bg-slate-800 flex items-center justify-center text-5xl\\'>📦</div>'">`
+            loading="lazy">`
     : `<div class="h-52 bg-slate-800 flex items-center justify-center text-5xl">📦</div>`;
 
   const priceHTML = price != null
@@ -440,7 +477,7 @@ function buildCard(item, collectionSlug) {
                       bg-slate-800 text-slate-600 cursor-not-allowed border
                       border-slate-700 btn-buy">Sin stock</button>`
     : `<button
-         onclick="abrirModal(this)"
+         data-action="comprar"
          data-colslug="${esc(collectionSlug)}"
          data-id="${esc(item.id)}"
          data-name="${esc(name)}"
@@ -467,6 +504,17 @@ function buildCard(item, collectionSlug) {
       <div class="stock-badge">${buildStockBadge(stock)}</div>
       ${btnHTML}
     </div>`;
+
+  // CSP no permite onerror inline — lo añadimos vía addEventListener
+  if (img) {
+    const imgEl = card.querySelector('img');
+    if (imgEl) {
+      imgEl.addEventListener('error', function () {
+        this.parentElement.innerHTML =
+          '<div class="h-52 bg-slate-800 flex items-center justify-center text-5xl">📦</div>';
+      });
+    }
+  }
 
   return card;
 }
@@ -496,12 +544,12 @@ function abrirModal(btnEl) {
     console.log('[abrirModal] pendingOrder establecido:', pendingOrder);
 
     // Rellenar resumen del producto
+    const summaryEl = document.getElementById('modal-product-summary');
     document.getElementById('modal-product-name').textContent = name;
-    document.getElementById('modal-product-summary').innerHTML = `
+    summaryEl.innerHTML = `
       ${img
         ? `<img src="${esc(img)}" alt="${esc(name)}"
-                style="width:3.5rem;height:3.5rem;object-fit:cover;border-radius:.5rem;flex-shrink:0"
-                onerror="this.style.display='none'">`
+                style="width:3.5rem;height:3.5rem;object-fit:cover;border-radius:.5rem;flex-shrink:0">`
         : '<div style="width:3.5rem;height:3.5rem;background:#1e293b;border-radius:.5rem;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1.5rem">📦</div>'}
       <div>
         <p style="color:#e2e8f0;font-weight:600;font-size:.875rem;margin:0 0 .2rem">${esc(name)}</p>
@@ -510,6 +558,11 @@ function abrirModal(btnEl) {
           <span style="color:#475569;font-weight:400;font-size:.72rem"> · 1 unidad</span>
         </p>
       </div>`;
+    // onerror inline está bloqueado por CSP — lo añadimos vía JS
+    if (img) {
+      const thumbEl = summaryEl.querySelector('img');
+      if (thumbEl) thumbEl.addEventListener('error', function () { this.style.display = 'none'; });
+    }
 
     // Limpiar campos y errores
     document.getElementById('modal-nombre').value     = '';
