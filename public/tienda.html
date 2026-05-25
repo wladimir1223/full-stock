@@ -60,6 +60,11 @@
     .btn-modal-close { color:#475569; transition:color .15s; }
     .btn-modal-close:hover { color:#94a3b8; }
 
+    /* Ocultar flechas nativas de input[type=number] (Chrome/Safari/Firefox) */
+    .qty-input::-webkit-outer-spin-button,
+    .qty-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    .qty-input { -moz-appearance: textfield; }
+
     /* Botones de cantidad en el modal */
     .btn-qty {
       width:2.25rem; height:2.25rem; border-radius:.5rem;
@@ -225,9 +230,12 @@
 
         <!-- Input numérico -->
         <input id="modal-qty" type="number" value="1" min="1" max="99"
-               class="modal-input"
+               class="modal-input qty-input"
                style="width:3.75rem;text-align:center;padding:.45rem .25rem;
-                      font-size:.95rem;font-weight:700"/>
+                      font-size:.95rem;font-weight:700;
+                      background:#0f172a;color:#f1f5f9;
+                      border:1px solid #334155;border-radius:.5rem;outline:none;
+                      transition:border-color .15s"/>
 
         <!-- Botón + -->
         <button id="qty-plus" class="btn-qty" aria-label="Sumar cantidad">+</button>
