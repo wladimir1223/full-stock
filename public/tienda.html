@@ -59,6 +59,18 @@
     /* CSP-safe hover — sin onmouseover/onmouseout inline */
     .btn-modal-close { color:#475569; transition:color .15s; }
     .btn-modal-close:hover { color:#94a3b8; }
+
+    /* Botones de cantidad en el modal */
+    .btn-qty {
+      width:2.25rem; height:2.25rem; border-radius:.5rem;
+      border:1px solid #334155; background:#0f172a;
+      color:#e2e8f0; font-size:1.35rem; font-weight:300; line-height:1;
+      cursor:pointer; display:flex; align-items:center; justify-content:center;
+      flex-shrink:0; transition:background .15s, border-color .15s;
+      user-select:none;
+    }
+    .btn-qty:hover  { background:#1e293b; border-color:#6366f1; color:#fff; }
+    .btn-qty:active { background:#334155; }
   </style>
 </head>
 
@@ -198,6 +210,36 @@
          style="padding:.875rem 1.5rem;background:#0f172a;
                 border-bottom:1px solid #1e293b;display:flex;align-items:center;gap:.875rem">
       <!-- filled by JS -->
+    </div>
+
+    <!-- Selector de Cantidad -->
+    <div style="padding:.875rem 1.5rem;border-bottom:1px solid #334155;background:#0f172a08">
+      <label style="display:block;font-size:.7rem;font-weight:600;color:#94a3b8;
+                     text-transform:uppercase;letter-spacing:.06em;margin-bottom:.55rem">
+        Cantidad
+      </label>
+      <div style="display:flex;align-items:center;gap:.75rem">
+
+        <!-- Botón − -->
+        <button id="qty-minus" class="btn-qty" aria-label="Restar cantidad">−</button>
+
+        <!-- Input numérico -->
+        <input id="modal-qty" type="number" value="1" min="1" max="99"
+               class="modal-input"
+               style="width:3.75rem;text-align:center;padding:.45rem .25rem;
+                      font-size:.95rem;font-weight:700"/>
+
+        <!-- Botón + -->
+        <button id="qty-plus" class="btn-qty" aria-label="Sumar cantidad">+</button>
+
+        <!-- Total dinámico -->
+        <div style="flex:1;text-align:right;min-width:0">
+          <span style="display:block;font-size:.65rem;color:#475569;
+                       text-transform:uppercase;letter-spacing:.05em;margin-bottom:.1rem">Total</span>
+          <span id="modal-total-price"
+                style="font-size:1.05rem;font-weight:700;color:#6366f1">—</span>
+        </div>
+      </div>
     </div>
 
     <!-- Formulario -->
@@ -360,6 +402,35 @@ document.addEventListener('DOMContentLoaded', () => {
       loadCatalog();
       return;
     }
+
+    // 6. Botón − de cantidad
+    if (e.target.closest('#qty-minus')) {
+      const inp = document.getElementById('modal-qty');
+      const val = Math.max(1, (parseInt(inp.value) || 1) - 1);
+      inp.value = String(val);
+      updateTotalPrice();
+      return;
+    }
+
+    // 7. Botón + de cantidad
+    if (e.target.closest('#qty-plus')) {
+      const inp = document.getElementById('modal-qty');
+      const max = parseInt(inp.max) || 99;
+      const val = Math.min(max, (parseInt(inp.value) || 1) + 1);
+      inp.value = String(val);
+      updateTotalPrice();
+      return;
+    }
+  });
+
+  // Input directo en el campo de cantidad (teclado / pegar)
+  document.getElementById('modal-qty').addEventListener('input', function () {
+    const max = parseInt(this.max) || 99;
+    let val   = parseInt(this.value) || 1;
+    if (val < 1)   val = 1;
+    if (val > max) val = max;
+    this.value = String(val);
+    updateTotalPrice();
   });
 });
 
@@ -483,12 +554,13 @@ function buildCard(item, collectionSlug) {
          data-name="${esc(name)}"
          data-price="${price != null ? Number(price) : 0}"
          data-img="${esc(img || '')}"
+         data-stock="${stock}"
          class="w-full mt-4 py-2.5 rounded-lg text-sm font-bold
                 bg-gradient-to-r from-indigo-600 to-violet-600
                 hover:from-indigo-500 hover:to-violet-500 text-white
                 transition-all duration-200 hover:shadow-lg
                 hover:shadow-indigo-900/40 active:scale-[.97] btn-buy">
-         🛍 Comprar 1 unidad
+         🛍 Comprar
        </button>`;
 
   card.innerHTML = `
@@ -530,9 +602,10 @@ function abrirModal(btnEl) {
     const name    = btnEl.dataset.name;
     const price   = parseFloat(btnEl.dataset.price) || 0;
     const img     = btnEl.dataset.img || '';
+    const stock   = parseInt(btnEl.dataset.stock) || 1;
     const card    = btnEl.closest('article');
 
-    console.log('[abrirModal] datos leídos:', { colslug, id, name, price, img, card });
+    console.log('[abrirModal] datos leídos:', { colslug, id, name, price, img, stock, card });
 
     if (!colslug || !id) {
       console.error('[abrirModal] Faltan datos en el dataset del botón:', btnEl.dataset);
@@ -540,7 +613,7 @@ function abrirModal(btnEl) {
       return;
     }
 
-    pendingOrder = { collectionSlug: colslug, productId: id, name, price, cardEl: card };
+    pendingOrder = { collectionSlug: colslug, productId: id, name, price, stock, cardEl: card };
     console.log('[abrirModal] pendingOrder establecido:', pendingOrder);
 
     // Rellenar resumen del producto
@@ -552,17 +625,27 @@ function abrirModal(btnEl) {
                 style="width:3.5rem;height:3.5rem;object-fit:cover;border-radius:.5rem;flex-shrink:0">`
         : '<div style="width:3.5rem;height:3.5rem;background:#1e293b;border-radius:.5rem;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1.5rem">📦</div>'}
       <div>
-        <p style="color:#e2e8f0;font-weight:600;font-size:.875rem;margin:0 0 .2rem">${esc(name)}</p>
-        <p style="color:#6366f1;font-size:.8rem;font-weight:700;margin:0">
-          ${price > 0 ? `$${Number(price).toFixed(2)}` : 'Precio a consultar'}
-          <span style="color:#475569;font-weight:400;font-size:.72rem"> · 1 unidad</span>
+        <p style="color:#e2e8f0;font-weight:600;font-size:.875rem;margin:0 0 .25rem">${esc(name)}</p>
+        <p style="color:#94a3b8;font-size:.78rem;margin:0 0 .1rem">
+          ${price > 0
+            ? `Precio unitario: <strong style="color:#6366f1">$${Number(price).toFixed(2)}</strong>`
+            : 'Precio a consultar'}
         </p>
+        <p style="color:#475569;font-size:.72rem;margin:0">Stock disponible: <strong style="color:#94a3b8">${stock}</strong></p>
       </div>`;
     // onerror inline está bloqueado por CSP — lo añadimos vía JS
     if (img) {
       const thumbEl = summaryEl.querySelector('img');
       if (thumbEl) thumbEl.addEventListener('error', function () { this.style.display = 'none'; });
     }
+
+    // Resetear y configurar selector de cantidad
+    const qtyInput = document.getElementById('modal-qty');
+    qtyInput.value = '1';
+    qtyInput.max   = String(stock);
+
+    // Actualizar total dinámico
+    updateTotalPrice();
 
     // Limpiar campos y errores
     document.getElementById('modal-nombre').value     = '';
@@ -610,6 +693,17 @@ function cerrarModal() {
   pendingOrder = null;
 }
 
+// ─── Precio total dinámico ────────────────────────────────────────────────────
+function updateTotalPrice() {
+  if (!pendingOrder) return;
+  const qtyInput = document.getElementById('modal-qty');
+  const qty      = Math.max(1, parseInt(qtyInput ? qtyInput.value : '1') || 1);
+  const total    = pendingOrder.price * qty;
+  const el       = document.getElementById('modal-total-price');
+  if (!el) return;
+  el.textContent = pendingOrder.price > 0 ? `$${total.toFixed(2)}` : '—';
+}
+
 // Cerrar con Escape
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') cerrarModal();
@@ -626,6 +720,7 @@ async function confirmarPedido() {
   const nombre    = document.getElementById('modal-nombre').value.trim();
   const direccion = document.getElementById('modal-direccion').value.trim();
   const comentario= document.getElementById('modal-comentario').value.trim();
+  const qty       = Math.max(1, parseInt(document.getElementById('modal-qty').value) || 1);
   const errEl     = document.getElementById('modal-error');
 
   // Validar campos obligatorios
@@ -661,7 +756,7 @@ async function confirmarPedido() {
         items: [{
           collectionSlug: pendingOrder.collectionSlug,
           productId:      pendingOrder.productId,
-          quantity:       1,
+          quantity:       qty,
         }],
       }),
     });
@@ -710,8 +805,9 @@ async function confirmarPedido() {
     if (pendingOrder.cardEl) {
       const stockDiv = pendingOrder.cardEl.querySelector('.stock-badge');
       if (stockDiv) stockDiv.innerHTML = buildStockBadge(nuevoStock);
+
+      const buyBtn = pendingOrder.cardEl.querySelector('.btn-buy');
       if (nuevoStock <= 0) {
-        const buyBtn = pendingOrder.cardEl.querySelector('.btn-buy');
         if (buyBtn) {
           buyBtn.disabled    = true;
           buyBtn.textContent = 'Sin stock';
@@ -720,13 +816,19 @@ async function confirmarPedido() {
             'background:#1e293b;color:#475569;border:1px solid #334155;' +
             'font-size:.875rem;font-weight:600;cursor:not-allowed';
         }
+      } else {
+        // Actualizar data-stock para la próxima vez que se abra el modal
+        if (buyBtn) buyBtn.dataset.stock = String(nuevoStock);
       }
     }
 
     // ── Fase 3: armar y abrir el enlace de WhatsApp ───────────────────────
     const storeLabel = document.getElementById('nav-store').textContent || 'la tienda';
-    const precio     = pendingOrder.price > 0
+    const unitPrice  = pendingOrder.price > 0
       ? `$${Number(pendingOrder.price).toFixed(2)}`
+      : 'a consultar';
+    const totalStr   = pendingOrder.price > 0
+      ? `$${(Number(pendingOrder.price) * qty).toFixed(2)}`
       : 'a consultar';
     const now        = new Date().toLocaleString('es', {
       day:'2-digit', month:'short', year:'numeric',
@@ -739,9 +841,10 @@ async function confirmarPedido() {
       `📍 *Entrega:* ${direccion}\n`;
     if (comentario) msg += `💬 *Notas:* ${comentario}\n`;
     msg +=
-      `\n📦 *Producto:*\n` +
-      `• ${pendingOrder.name} x1 — ${precio}\n` +
-      `\n💰 *Total:* ${precio}\n` +
+      `\n📦 *Producto:* ${pendingOrder.name}\n` +
+      `🔢 *Cantidad:* ${qty}\n` +
+      `💵 *Precio unitario:* ${unitPrice}\n` +
+      `💰 *Total a pagar:* ${totalStr}\n` +
       `\n📅 ${now}`;
 
     const waNum  = (tenantWhatsapp || '').replace(/\D/g, '');
