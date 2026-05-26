@@ -9,10 +9,10 @@ const Catalog = (() => {
 
   // 4 campos estándar que se crean automáticamente en cada categoría
   const CAMPOS_ESTANDAR = [
-    { name: 'nombre',      type: 'short_text', icon: '✏️',  label: 'Nombre'      },
-    { name: 'precio',      type: 'number',     icon: '💲',  label: 'Precio'      },
-    { name: 'descripcion', type: 'long_text',  icon: '📝',  label: 'Descripción' },
-    { name: 'imagen',      type: 'image_url',  icon: '🖼️',  label: 'Imagen'      },
+    { name: 'nombre',      type: 'short_text', label: 'Nombre'      },
+    { name: 'precio',      type: 'number',     label: 'Precio'      },
+    { name: 'descripcion', type: 'long_text',  label: 'Descripción' },
+    { name: 'imagen',      type: 'image_url',  label: 'Imagen'      },
   ];
 
   // ─── Render principal ──────────────────────────────────────────────────────
@@ -24,7 +24,12 @@ const Catalog = (() => {
         <!-- ── Encabezado ─────────────────────────────────────────────────── -->
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div>
-            <h2 class="text-2xl font-bold text-white">🗂️ Mis Categorías</h2>
+            <h2 class="text-2xl font-bold text-white flex items-center gap-2.5">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-indigo-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
+              </svg>
+              Mis Categorías
+            </h2>
             <p class="text-slate-400 text-sm mt-1">
               Organiza tu inventario por tipo de producto.
               Cada categoría tiene su propia lista de artículos.
@@ -59,8 +64,10 @@ const Catalog = (() => {
             <!-- Icono + título -->
             <div class="flex items-center gap-3.5 mb-6">
               <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600
-                          flex items-center justify-center text-2xl shadow-lg shrink-0">
-                🗂️
+                          flex items-center justify-center shadow-lg shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
+                </svg>
               </div>
               <div>
                 <h3 class="font-extrabold text-white text-lg leading-tight">
@@ -90,12 +97,12 @@ const Catalog = (() => {
             <!-- Campos auto-generados -->
             <div class="mt-4 bg-slate-900/70 rounded-xl p-4 border border-slate-700/50">
               <p class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3">
-                ✨ Campos que se crean automáticamente
+                Campos generados automáticamente
               </p>
               <div class="grid grid-cols-2 gap-y-2 gap-x-3">
                 ${CAMPOS_ESTANDAR.map(f => `
                   <div class="flex items-center gap-2 text-xs">
-                    <span class="text-base leading-none">${f.icon}</span>
+                    <span style="width:.375rem;height:.375rem;border-radius:50%;background:#6366f1;flex-shrink:0;display:inline-block"></span>
                     <span class="text-slate-300 font-semibold">${f.label}</span>
                   </div>
                 `).join('')}
@@ -222,7 +229,7 @@ const Catalog = (() => {
       });
 
       cerrar();
-      App.showToast(`✅ Categoría "${nombre}" creada. ¡Ahora añade tus productos!`, 'success');
+      App.showToast(`Categoría "${nombre}" creada. Ahora añade tus productos.`, 'success');
 
       // Redirigir al gestor de productos con el form abierto automáticamente
       const slug = (res && res.data && res.data.slug) ? res.data.slug : toSlug(nombre);
@@ -261,9 +268,11 @@ const Catalog = (() => {
           <div class="flex items-start justify-between gap-2 mb-4">
             <div class="w-12 h-12 rounded-xl
                         bg-gradient-to-br from-indigo-500/15 to-violet-600/15
-                        border border-indigo-500/25 flex items-center justify-center text-2xl
+                        border border-indigo-500/25 flex items-center justify-center
                         group-hover:from-indigo-500/25 group-hover:to-violet-600/25 transition-all">
-              📦
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10"/>
+              </svg>
             </div>
             <span class="text-[11px] bg-slate-700/80 text-slate-400
                          px-2.5 py-1 rounded-full font-semibold shrink-0">
@@ -345,8 +354,10 @@ const Catalog = (() => {
     return `
       <div class="col-span-full flex flex-col items-center justify-center py-20 text-center">
         <div class="w-24 h-24 rounded-3xl bg-slate-800 border border-slate-700
-                    flex items-center justify-center text-5xl mb-6 shadow-inner">
-          🗂️
+                    flex items-center justify-center mb-6 shadow-inner">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.25">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
+          </svg>
         </div>
         <h3 class="text-white font-extrabold text-xl mb-2">
           Aún no tienes categorías

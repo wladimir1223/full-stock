@@ -123,6 +123,38 @@
       from { opacity: 0; transform: translateY(-4px); }
       to   { opacity: 1; transform: translateY(0); }
     }
+
+    /* ── Offcanvas nav drawer (mobile) ─────────────────────────── */
+    .nav-drawer-panel {
+      transform: translateX(-100%);
+      transition: transform .28s cubic-bezier(.4,0,.2,1);
+    }
+    .nav-drawer-panel.is-open { transform: translateX(0); }
+
+    .nav-overlay {
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .28s ease;
+    }
+    .nav-overlay.is-open { opacity: 1; pointer-events: auto; }
+
+    /* ── Sidebar section labels ─────────────────────────────────── */
+    .nav-section-label {
+      display: block;
+      font-size: .625rem;
+      font-weight: 700;
+      color: #475569;
+      text-transform: uppercase;
+      letter-spacing: .09em;
+      padding: 0 .625rem;
+      margin-bottom: .3rem;
+    }
+
+    /* ── Nav item active state ──────────────────────────────────── */
+    .nav-tab-active {
+      background: rgba(99,102,241,.12) !important;
+      color: #a5b4fc !important;
+    }
   </style>
 </head>
 <body class="bg-slate-950 text-slate-100">
@@ -147,10 +179,10 @@
   <script src="/js/api.js?v=11"></script>
   <script src="/js/builder.js?v=11"></script>
   <script src="/js/content.js?v=11"></script>
-  <script src="/js/catalog.js?v=11"></script>
+  <script src="/js/catalog.js?v=13"></script>
   <script src="/js/superadmin.js?v=11"></script>
   <script src="/js/apihub.js?v=1"></script>
-  <script src="/js/settings.js?v=11"></script>
-  <script src="/js/app.js?v=12"></script>
+  <script src="/js/settings.js?v=13"></script>
+  <script src="/js/app.js?v=13"></script>
 </body>
 </html>

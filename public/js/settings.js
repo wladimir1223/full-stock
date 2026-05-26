@@ -16,8 +16,15 @@ const Settings = (() => {
 
         <!-- Cabecera -->
         <div style="margin-bottom:1.75rem">
-          <h1 style="font-size:1.375rem;font-weight:700;color:#f1f5f9;margin:0 0 .3rem">
-            ⚙️ Configuración de la tienda
+          <h1 style="font-size:1.375rem;font-weight:700;color:#f1f5f9;margin:0 0 .3rem;
+                     display:flex;align-items:center;gap:.625rem">
+            <svg xmlns="http://www.w3.org/2000/svg" style="width:1.25rem;height:1.25rem;color:#6366f1;flex-shrink:0"
+                 fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+            </svg>
+            Configuración de la tienda
           </h1>
           <p style="color:#64748b;font-size:.85rem;margin:0">
             Ajusta los datos públicos de tu negocio.
@@ -125,8 +132,15 @@ const Settings = (() => {
               <button id="cfg-copy-link"
                 style="background:#1e293b;border:1px solid #334155;color:#94a3b8;
                        font-size:.75rem;font-weight:600;padding:.4rem .75rem;
-                       border-radius:.5rem;cursor:pointer;transition:all .15s">
-                📋 Copiar
+                       border-radius:.5rem;cursor:pointer;transition:all .15s;
+                       display:flex;align-items:center;gap:.375rem">
+                <svg xmlns="http://www.w3.org/2000/svg" style="width:.8rem;height:.8rem;flex-shrink:0"
+                     fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2
+                       m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                </svg>
+                Copiar
               </button>
             </div>
           </div>
@@ -198,8 +212,8 @@ const Settings = (() => {
       cfgStoreLink.textContent = storeUrl;
       cfgCopy.addEventListener('click', () => {
         navigator.clipboard.writeText(storeUrl).then(() => {
-          cfgCopy.textContent = '✓ Copiado';
-          setTimeout(() => { cfgCopy.textContent = '📋 Copiar'; }, 1800);
+          cfgCopy.textContent = 'Copiado';
+          setTimeout(() => { cfgCopy.textContent = 'Copiar'; }, 1800);
         });
       });
 
