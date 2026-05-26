@@ -104,6 +104,14 @@ app.use(express.static(path.join(__dirname, 'public')));
 // ─── Rutas de la API ──────────────────────────────────────────────────────────
 app.use('/', routes);
 
+// ─── Tienda pública — Clean URL ───────────────────────────────────────────────
+// GET /tienda/:slug → sirve tienda.html.
+// El frontend extrae el slug de window.location.pathname; no se expone ?tenant=.
+// Esta ruta debe ir ANTES del fallback SPA para que Express no la intercepte.
+app.get('/tienda/:slug', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'tienda.html'));
+});
+
 // ─── Fallback SPA ─────────────────────────────────────────────────────────────
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));

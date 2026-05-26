@@ -416,9 +416,9 @@
 'use strict';
 
 // ─── Config ───────────────────────────────────────────────────────────────────
-// Slug del tenant leído desde ?tenant=SLUG en la URL.
-// Sin parámetro → se muestra pantalla de error, no se carga nada.
-const TENANT       = new URLSearchParams(window.location.search).get('tenant') || '';
+// Slug del tenant extraído del path limpio: /tienda/SLUG
+// Nunca aparece como query-param → la estructura interna queda oculta al cliente.
+const TENANT = window.location.pathname.split('/').filter(Boolean).pop() || '';
 const CATALOG_URL  = `/api/v1/store/${TENANT}/products`;
 const CHECKOUT_URL = `/api/v1/store/${TENANT}/checkout`;
 
