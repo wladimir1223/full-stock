@@ -29,7 +29,12 @@
  */
 
 const express    = require('express');
+const cors       = require('cors');
 const router     = express.Router();
+
+// CORS abierto para el endpoint público de la API de integración.
+// Permite que cualquier dominio externo (tiendaderoberto.cl, etc.) consuma el catálogo.
+const openCors = cors({ origin: '*', methods: ['GET', 'OPTIONS'] });
 
 const authCtrl   = require('../controllers/authController');
 const colCtrl    = require('../controllers/collectionsController');
@@ -115,6 +120,79 @@ router.get('/api/v1/:tenant_slug/collections/:collection_slug', async function (
 
   } catch (err) {
     console.error('[public:getCollection]', err);
+    res.status(500).json({ success: false, message: 'Error de servidor.' });
+  }
+});
+
+// ════════════════════════════════════════════════════════════════
+// API PÚBLICA DE INTEGRACIÓN — CORS abierto (sin JWT)
+// Permite que dominios externos consuman el catálogo de un tenant.
+// ════════════════════════════════════════════════════════════════
+
+/**
+ * GET /api/v1/public/tenants/:slug/products
+ *
+ * Devuelve el catálogo completo de una tienda con stock disponible.
+ * Diseñado para ser consumido por webs externas del cliente
+ * (ej: tiendaderoberto.cl) sin restricciones de origen (CORS *).
+ *
+ * Respuesta:
+ *   { success, storeName, slug, whatsapp, totalProducts, products[] }
+ *   products[i]: { id, collectionName, collectionSlug, stock, ...campos }
+ */
+router.options('/api/v1/public/tenants/:slug/products', openCors);   // preflight
+router.get('/api/v1/public/tenants/:slug/products', openCors, async (req, res) => {
+  try {
+    const User = require('../models/User');
+    const tenant = await userDb.findBySlug(req.params.slug);
+
+    if (!tenant) {
+      return res.status(404).json({
+        success: false,
+        code:    'TENANT_NOT_FOUND',
+        message: 'Tienda no encontrada. Verifica el slug.',
+      });
+    }
+
+    // Obtener todas las colecciones del tenant
+    const cols = await Collection.find({ tenantId: tenant.id }).sort({ createdAt: 1 }).lean();
+
+    // Obtener todos los items con stock > 0
+    const items = await Item.find({
+      tenantId: tenant.id,
+      // No filtramos por stock aquí — devolvemos todos e incluimos stock en la respuesta
+    }).sort({ createdAt: 1 }).lean();
+
+    // Construir mapa colección → nombre
+    const colMap = Object.fromEntries(cols.map(c => [c.slug, c.name]));
+
+    const products = items.map(item => {
+      const stock = Number(item.data?.stock ?? item.data?.Stock ?? 0);
+      return {
+        id:             item._id.toString(),
+        collectionName: colMap[item.collectionSlug] || item.collectionSlug,
+        collectionSlug: item.collectionSlug,
+        stock,
+        ...item.data,   // todos los campos dinámicos del producto
+        createdAt:      item.createdAt,
+        updatedAt:      item.updatedAt,
+      };
+    });
+
+    // Leer datos actualizados del tenant para nombre y whatsapp
+    const fullUser = await User.findById(tenant.id).select('name whatsapp').lean();
+
+    res.json({
+      success:       true,
+      storeName:     fullUser?.name    || tenant.name || tenant.slug,
+      slug:          tenant.slug,
+      whatsapp:      fullUser?.whatsapp || '',
+      totalProducts: products.length,
+      products,
+    });
+
+  } catch (err) {
+    console.error('[publicApi:products]', err);
     res.status(500).json({ success: false, message: 'Error de servidor.' });
   }
 });

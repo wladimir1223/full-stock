@@ -47,6 +47,7 @@ const App = (() => {
     }
     if (isSuperAdmin()) {
       base.monitor = { label: '🔭 Monitoreo Global', module: () => SuperAdmin };
+      base.apihub  = { label: '🔌 API Hub',          module: () => ApiHub   };
     }
     return base;
   }
