@@ -44,9 +44,7 @@ const Settings = (() => {
                   style="width:100%;box-sizing:border-box;background:#0f172a;
                          border:1px solid #334155;border-radius:.5rem;color:#f1f5f9;
                          padding:.55rem .75rem;font-size:.875rem;outline:none;
-                         transition:border-color .15s"
-                  onfocus="this.style.borderColor='#6366f1'"
-                  onblur="this.style.borderColor='#334155'"/>
+                         transition:border-color .15s"/>
               </div>
 
               <!-- Slug (solo lectura) -->
@@ -98,9 +96,7 @@ const Settings = (() => {
                   style="flex:1;background:#0f172a;border:1px solid #334155;
                          border-radius:0 .5rem .5rem 0;color:#f1f5f9;
                          padding:.55rem .75rem;font-size:.875rem;outline:none;
-                         transition:border-color .15s"
-                  onfocus="this.style.borderColor='#6366f1'"
-                  onblur="this.style.borderColor='#334155'"/>
+                         transition:border-color .15s"/>
               </div>
             </div>
 
@@ -125,15 +121,11 @@ const Settings = (() => {
                         word-break:break-all;text-decoration:none;
                         padding:.4rem .75rem;background:#0f172a;
                         border:1px solid #334155;border-radius:.5rem;
-                        transition:border-color .15s"
-                 onmouseover="this.style.borderColor='#6366f1'"
-                 onmouseout="this.style.borderColor='#334155'">—</a>
+                        transition:border-color .15s">—</a>
               <button id="cfg-copy-link"
                 style="background:#1e293b;border:1px solid #334155;color:#94a3b8;
                        font-size:.75rem;font-weight:600;padding:.4rem .75rem;
-                       border-radius:.5rem;cursor:pointer;transition:all .15s"
-                onmouseover="this.style.background='#334155'"
-                onmouseout="this.style.background='#1e293b'">
+                       border-radius:.5rem;cursor:pointer;transition:all .15s">
                 📋 Copiar
               </button>
             </div>
@@ -165,6 +157,20 @@ const Settings = (() => {
     const cfgMsg       = container.querySelector('#cfg-msg');
     const cfgCopy      = container.querySelector('#cfg-copy-link');
     const cfgStoreLink = container.querySelector('#cfg-store-link');
+
+    // Focus/blur: resaltar borde — sin inline handlers (CSP: script-src-attr 'none')
+    cfgName.addEventListener('focus', () => { cfgName.style.borderColor = '#6366f1'; });
+    cfgName.addEventListener('blur',  () => { cfgName.style.borderColor = '#334155'; });
+    cfgWa.addEventListener('focus',   () => { cfgWa.style.borderColor   = '#6366f1'; });
+    cfgWa.addEventListener('blur',    () => { cfgWa.style.borderColor   = '#334155'; });
+
+    // Hover: enlace tienda pública
+    cfgStoreLink.addEventListener('mouseover', () => { cfgStoreLink.style.borderColor = '#6366f1'; });
+    cfgStoreLink.addEventListener('mouseout',  () => { cfgStoreLink.style.borderColor = '#334155'; });
+
+    // Hover: botón copiar
+    cfgCopy.addEventListener('mouseover', () => { cfgCopy.style.background = '#334155'; });
+    cfgCopy.addEventListener('mouseout',  () => { cfgCopy.style.background = '#1e293b'; });
 
     // Actualizar preview wa.me en tiempo real
     cfgWa.addEventListener('input', () => {

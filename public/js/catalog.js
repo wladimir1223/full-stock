@@ -177,6 +177,11 @@ const Catalog = (() => {
       setTimeout(() => input.focus(), 60);
     });
 
+    // Botón "Crear mi primera categoría" del estado vacío (delegado: se inyecta dinámicamente)
+    container.addEventListener('click', e => {
+      if (e.target.closest('[data-action="primera-cat"]')) btnAbrir.click();
+    });
+
     // Cerrar modal
     function cerrar() {
       modal.classList.add('hidden');
@@ -350,7 +355,7 @@ const Catalog = (() => {
           Crea tu primera categoría y empieza a añadir productos en segundos.
           Nosotros nos encargamos de la configuración técnica.
         </p>
-        <button onclick="document.getElementById('btn-nueva-cat').click()"
+        <button data-action="primera-cat"
           class="bg-gradient-to-r from-indigo-500 to-violet-600 text-white
                  font-bold text-sm px-7 py-3.5 rounded-xl hover:opacity-90
                  transition-all hover:scale-105 active:scale-95 shadow-lg shadow-indigo-900/30">

@@ -108,7 +108,12 @@ app.use('/', routes);
 // GET /tienda/:slug → sirve tienda.html.
 // El frontend extrae el slug de window.location.pathname; no se expone ?tenant=.
 // Esta ruta debe ir ANTES del fallback SPA para que Express no la intercepte.
+// Cache-Control: no-cache fuerza al navegador a revalidar con el servidor en cada
+// visita, evitando que se sirva una versión obsoleta con handlers inline (CSP error).
 app.get('/tienda/:slug', (req, res) => {
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
   res.sendFile(path.join(__dirname, 'public', 'tienda.html'));
 });
 

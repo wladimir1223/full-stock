@@ -160,8 +160,7 @@ const App = (() => {
                       style="position:absolute;right:.65rem;top:50%;transform:translateY(-50%);
                              background:none;border:none;cursor:pointer;color:#64748b;padding:.2rem;
                              display:flex;align-items:center;border-radius:.25rem;
-                             transition:color .15s" onmouseover="this.style.color='#94a3b8'"
-                      onmouseout="this.style.color='#64748b'">
+                             transition:color .15s">
                       <svg id="li-eye-icon" xmlns="http://www.w3.org/2000/svg" style="width:1rem;height:1rem;display:block;pointer-events:none" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                     </button>
                   </div>
@@ -182,9 +181,7 @@ const App = (() => {
               <div style="text-align:center;margin-top:.875rem">
                 <button id="btn-forgot" type="button"
                   style="background:none;border:none;cursor:pointer;color:#6366f1;font-size:.78rem;
-                         font-weight:500;padding:.2rem .4rem;border-radius:.25rem;transition:color .15s"
-                  onmouseover="this.style.color='#818cf8'"
-                  onmouseout="this.style.color='#6366f1'">
+                         font-weight:500;padding:.2rem .4rem;border-radius:.25rem;transition:color .15s">
                   ¿Olvidaste tu contraseña?
                 </button>
               </div>
@@ -232,8 +229,7 @@ const App = (() => {
                     <button id="re-toggle1" type="button" title="Mostrar / ocultar contraseña"
                       style="position:absolute;right:.65rem;top:50%;transform:translateY(-50%);
                              background:none;border:none;cursor:pointer;color:#64748b;padding:.2rem;
-                             display:flex;align-items:center;border-radius:.25rem;transition:color .15s"
-                      onmouseover="this.style.color='#94a3b8'" onmouseout="this.style.color='#64748b'">
+                             display:flex;align-items:center;border-radius:.25rem;transition:color .15s">
                       <svg xmlns="http://www.w3.org/2000/svg" style="width:1rem;height:1rem;display:block;pointer-events:none" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                     </button>
                   </div>
@@ -252,8 +248,7 @@ const App = (() => {
                     <button id="re-toggle2" type="button" title="Mostrar / ocultar contraseña"
                       style="position:absolute;right:.65rem;top:50%;transform:translateY(-50%);
                              background:none;border:none;cursor:pointer;color:#64748b;padding:.2rem;
-                             display:flex;align-items:center;border-radius:.25rem;transition:color .15s"
-                      onmouseover="this.style.color='#94a3b8'" onmouseout="this.style.color='#64748b'">
+                             display:flex;align-items:center;border-radius:.25rem;transition:color .15s">
                       <svg xmlns="http://www.w3.org/2000/svg" style="width:1rem;height:1rem;display:block;pointer-events:none" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/></svg>
                     </button>
                   </div>
@@ -370,6 +365,8 @@ const App = (() => {
     const liBtn    = wrap.querySelector('#li-btn');
     const liError  = wrap.querySelector('#li-error');
     const liToggle = wrap.querySelector('#li-toggle');
+    liToggle.addEventListener('mouseover', () => { liToggle.style.color = '#94a3b8'; });
+    liToggle.addEventListener('mouseout',  () => { liToggle.style.color = '#64748b'; });
 
     // ── Helper: ojo de contraseña (eye / eye-slash) ──────────────────
     const SVG_EYE_OPEN =
@@ -429,8 +426,12 @@ const App = (() => {
     const reSlug    = wrap.querySelector('#re-slug-preview');
     const reToggle1 = wrap.querySelector('#re-toggle1');
     const reToggle2 = wrap.querySelector('#re-toggle2');
-    reToggle1.addEventListener('click', () => togglePassInput(rePass, reToggle1));
-    reToggle2.addEventListener('click', () => togglePassInput(rePass2, reToggle2));
+    reToggle1.addEventListener('click',     () => togglePassInput(rePass,  reToggle1));
+    reToggle2.addEventListener('click',     () => togglePassInput(rePass2, reToggle2));
+    reToggle1.addEventListener('mouseover', () => { reToggle1.style.color = '#94a3b8'; });
+    reToggle1.addEventListener('mouseout',  () => { reToggle1.style.color = '#64748b'; });
+    reToggle2.addEventListener('mouseover', () => { reToggle2.style.color = '#94a3b8'; });
+    reToggle2.addEventListener('mouseout',  () => { reToggle2.style.color = '#64748b'; });
 
     // Preview del slug en tiempo real
     reName.addEventListener('input', () => {
@@ -496,7 +497,10 @@ const App = (() => {
     const forgotCancel = wrap.querySelector('#forgot-cancel');
     const forgotBd     = wrap.querySelector('#modal-forgot-bd');
 
-    wrap.querySelector('#btn-forgot').addEventListener('click', () => {
+    const btnForgot = wrap.querySelector('#btn-forgot');
+    btnForgot.addEventListener('mouseover', () => { btnForgot.style.color = '#818cf8'; });
+    btnForgot.addEventListener('mouseout',  () => { btnForgot.style.color = '#6366f1'; });
+    btnForgot.addEventListener('click', () => {
       forgotEmail.value         = liEmail.value.trim(); // pre-rellena si ya escribió el email
       forgotError.style.display = 'none';
       modalForgot.style.display = 'flex';
@@ -720,13 +724,12 @@ const App = (() => {
 
           <!-- Acciones -->
           <div style="display:flex;flex-direction:column;gap:.625rem">
-            <a href="mailto:agencia.mascotizaciones@gmail.com?subject=Soporte%20Plataforma%20Full%20Stock"
+            <a id="support-email-link"
+               href="mailto:agencia.mascotizaciones@gmail.com?subject=Soporte%20Plataforma%20Full%20Stock"
                style="display:flex;align-items:center;justify-content:center;gap:.5rem;
                       background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;
                       font-weight:600;font-size:.875rem;padding:.75rem;border-radius:.5rem;
-                      text-decoration:none;transition:opacity .15s;text-align:center"
-               onmouseover="this.style.opacity='.88'"
-               onmouseout="this.style.opacity='1'">
+                      text-decoration:none;transition:opacity .15s;text-align:center">
               <svg xmlns="http://www.w3.org/2000/svg" style="width:1rem;height:1rem;flex-shrink:0"
                    fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round"
@@ -738,9 +741,7 @@ const App = (() => {
             <button id="support-close"
               style="padding:.7rem;background:#0f172a;color:#94a3b8;
                      font-weight:500;font-size:.875rem;border-radius:.5rem;
-                     border:1px solid #334155;cursor:pointer;transition:background .15s"
-              onmouseover="this.style.background='#1e293b'"
-              onmouseout="this.style.background='#0f172a'">
+                     border:1px solid #334155;cursor:pointer;transition:background .15s">
               Cerrar
             </button>
           </div>
@@ -764,6 +765,13 @@ const App = (() => {
     const modalSupport    = document.getElementById('modal-support');
     const supportBackdrop = document.getElementById('support-backdrop');
     const supportClose    = document.getElementById('support-close');
+    const supportEmailLink = document.getElementById('support-email-link');
+    if (supportEmailLink) {
+      supportEmailLink.addEventListener('mouseover', () => { supportEmailLink.style.opacity = '.88'; });
+      supportEmailLink.addEventListener('mouseout',  () => { supportEmailLink.style.opacity = '1'; });
+    }
+    supportClose.addEventListener('mouseover', () => { supportClose.style.background = '#1e293b'; });
+    supportClose.addEventListener('mouseout',  () => { supportClose.style.background = '#0f172a'; });
 
     document.getElementById('support-btn').addEventListener('click', () => {
       modalSupport.style.display = 'flex';
