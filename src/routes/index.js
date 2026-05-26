@@ -388,6 +388,40 @@ router.get('/admin/collections/:slug',    requireAuth, colCtrl.getCollection);
 router.post('/admin/collections',         requireAuth, colCtrl.createCollection);
 router.delete('/admin/collections/:slug', requireAuth, colCtrl.deleteCollection);
 
+// PATCH /admin/collections/:slug — renombrar colección (solo el name, slug no cambia)
+router.patch('/admin/collections/:slug', requireAuth, async (req, res) => {
+  try {
+    const { name } = req.body;
+    if (!name || typeof name !== 'string' || !name.trim())
+      return res.status(400).json({ success: false, message: 'El nombre es obligatorio.' });
+
+    const col = await Collection.findOneAndUpdate(
+      { tenantId: req.tenant.id, slug: req.params.slug },
+      { $set: { name: name.trim() } },
+      { new: true }
+    );
+    if (!col) return res.status(404).json({ success: false, message: 'Colección no encontrada.' });
+
+    logActivity(req.tenant, 'UPDATE_COLLECTION',
+      `Renombró la colección "${req.params.slug}" → "${col.name}"`);
+
+    res.json({
+      success: true,
+      data: {
+        id:        col._id.toString(),
+        name:      col.name,
+        slug:      col.slug,
+        fields:    col.fields,
+        createdAt: col.createdAt,
+        updatedAt: col.updatedAt,
+      },
+    });
+  } catch (err) {
+    console.error('[updateCollection]', err);
+    res.status(500).json({ success: false, message: 'Error al actualizar la colección.' });
+  }
+});
+
 // ════════════════════════════════════════════════════════════════
 // ADMIN — Items de contenido (protegido)
 // ════════════════════════════════════════════════════════════════
@@ -439,6 +473,167 @@ router.post('/admin/upload', requireAuth, function (req, res) {
       res.status(500).json({ success: false, message: 'Error al subir la imagen a Cloudinary.' });
     }
   });
+});
+
+// ════════════════════════════════════════════════════════════════
+// ADMIN — Analíticas de ventas (protegido)
+// ════════════════════════════════════════════════════════════════
+
+/**
+ * GET /admin/analytics?days=30
+ *
+ * Devuelve métricas de ventas del tenant autenticado para los últimos N días.
+ * Fuente: ActivityLog (acciones SELL_ITEM y CHECKOUT).
+ * Los ingresos se calculan con los precios actuales de los ítems.
+ *
+ * Respuesta:
+ *   { success, data: { period, totalTransactions, totalRevenue, avgTicket,
+ *                      byChannel, byDay[], topProducts[] } }
+ */
+router.get('/admin/analytics', requireAuth, async (req, res) => {
+  try {
+    const days  = Math.min(parseInt(req.query.days, 10) || 30, 90);
+    const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+
+    // ── 1. Logs del tenant en el período ─────────────────────────────────────
+    const logs = await ActivityLog.find({
+      tenantId:  req.tenant.id,
+      action:    { $in: ['SELL_ITEM', 'CHECKOUT'] },
+      createdAt: { $gte: since },
+    }).sort({ createdAt: 1 }).lean();
+
+    // ── 2. Ítems del tenant para lookup de precios ────────────────────────────
+    const allItems = await Item.find({ tenantId: req.tenant.id })
+      .select('_id data collectionSlug')
+      .lean();
+
+    const itemById = Object.fromEntries(allItems.map(i => [i._id.toString(), i]));
+
+    // ── 3. Extrae precio del data dinámico del ítem ───────────────────────────
+    const PRICE_KEYS = [
+      'precio', 'price', 'costo', 'valor', 'monto', 'tarifa', 'importe',
+      'Precio', 'Price', 'Costo', 'Valor', 'Monto',
+    ];
+    const SKIP_KEYS = new Set(['stock', 'cantidad', 'quantity', 'id',
+                               'Stock', 'Cantidad', 'Quantity']);
+
+    function extractPrice(data) {
+      if (!data) return 0;
+      for (const key of PRICE_KEYS) {
+        const v = data[key];
+        if (v !== undefined && !isNaN(Number(v)) && Number(v) > 0) return Number(v);
+      }
+      // Último recurso: primer campo numérico positivo que no sea stock
+      for (const [k, v] of Object.entries(data)) {
+        if (!SKIP_KEYS.has(k) && !isNaN(Number(v)) && Number(v) > 0) return Number(v);
+      }
+      return 0;
+    }
+
+    // ── 4. Busca ítem por nombre (para CHECKOUT) ──────────────────────────────
+    function findItemByName(name) {
+      const lc = name.toLowerCase();
+      return allItems.find(it => {
+        const n = it.data?.nombre || it.data?.name || it.data?.Nombre || it.data?.Name || '';
+        return String(n).toLowerCase() === lc;
+      }) || null;
+    }
+
+    // ── 5. Procesa logs ───────────────────────────────────────────────────────
+    const byDayMap = {};
+    const topMap   = {};
+    let totalTransactions = 0;
+    let totalRevenue      = 0;
+    const byChannel = {
+      web:    { count: 0, revenue: 0 },
+      direct: { count: 0, revenue: 0 },
+    };
+
+    for (const log of logs) {
+      const dateStr = log.createdAt.toISOString().slice(0, 10);
+      if (!byDayMap[dateStr]) byDayMap[dateStr] = { date: dateStr, count: 0, revenue: 0 };
+
+      if (log.action === 'SELL_ITEM') {
+        // details: "Vendió N unidad(es) de "NAME" en "slug". Stock restante: M"
+        const qMatch    = /Vendió (\d+) unidad/.exec(log.details || '');
+        const nameMatch = /de "([^"]+)"/.exec(log.details || '');
+        const qty  = qMatch ? parseInt(qMatch[1], 10) : 1;
+        const name = nameMatch ? nameMatch[1] : 'Producto';
+
+        const item  = log.entityId ? itemById[log.entityId] : null;
+        const price = item ? extractPrice(item.data) : 0;
+        const rev   = price * qty;
+
+        totalTransactions             += 1;
+        totalRevenue                  += rev;
+        byDayMap[dateStr].count       += 1;
+        byDayMap[dateStr].revenue     += rev;
+        byChannel.direct.count        += 1;
+        byChannel.direct.revenue      += rev;
+
+        if (!topMap[name]) topMap[name] = { name, quantity: 0, revenue: 0 };
+        topMap[name].quantity += qty;
+        topMap[name].revenue  += rev;
+
+      } else if (log.action === 'CHECKOUT') {
+        // details: "Compra pública: ProductName x2, AnotherProduct x1"
+        const body  = (log.details || '').replace(/^Compra pública:\s*/i, '');
+        const parts = body.split(',').map(s => s.trim()).filter(Boolean);
+        let orderRev = 0;
+
+        for (const part of parts) {
+          const m = /^(.+?)\s+x(\d+)$/.exec(part);
+          if (!m) continue;
+          const pName = m[1].trim();
+          const qty   = parseInt(m[2], 10);
+          const item  = findItemByName(pName);
+          const price = item ? extractPrice(item.data) : 0;
+          const rev   = price * qty;
+
+          orderRev += rev;
+          if (!topMap[pName]) topMap[pName] = { name: pName, quantity: 0, revenue: 0 };
+          topMap[pName].quantity += qty;
+          topMap[pName].revenue  += rev;
+        }
+
+        totalTransactions           += 1;
+        totalRevenue                += orderRev;
+        byDayMap[dateStr].count     += 1;
+        byDayMap[dateStr].revenue   += orderRev;
+        byChannel.web.count         += 1;
+        byChannel.web.revenue       += orderRev;
+      }
+    }
+
+    // ── 6. Ordenar y proyectar ────────────────────────────────────────────────
+    const byDay = Object.values(byDayMap).sort((a, b) => a.date.localeCompare(b.date));
+
+    const topProducts = Object.values(topMap)
+      .sort((a, b) => b.quantity - a.quantity || b.revenue - a.revenue)
+      .slice(0, 5)
+      .map(p => ({ ...p, revenue: Math.round(p.revenue * 100) / 100 }));
+
+    const avgTicket = totalTransactions > 0
+      ? Math.round(totalRevenue / totalTransactions * 100) / 100
+      : 0;
+
+    res.json({
+      success: true,
+      data: {
+        period:            `${days}d`,
+        totalTransactions,
+        totalRevenue:      Math.round(totalRevenue * 100) / 100,
+        avgTicket,
+        byChannel,
+        byDay,
+        topProducts,
+      },
+    });
+
+  } catch (err) {
+    console.error('[analytics:get]', err);
+    res.status(500).json({ success: false, message: 'Error al obtener analíticas.' });
+  }
 });
 
 module.exports = router;

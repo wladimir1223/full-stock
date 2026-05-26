@@ -108,10 +108,11 @@ var API = {
     },
   },
   collections: {
-    list:   function()        { return request('GET',    '/admin/collections'); },
-    get:    function(slug)    { return request('GET',    '/admin/collections/' + slug); },
-    create: function(payload) { return request('POST',   '/admin/collections', payload); },
-    delete: function(slug)    { return request('DELETE', '/admin/collections/' + slug); },
+    list:   function()             { return request('GET',    '/admin/collections'); },
+    get:    function(slug)         { return request('GET',    '/admin/collections/' + slug); },
+    create: function(payload)      { return request('POST',   '/admin/collections', payload); },
+    update: function(slug, data)   { return request('PATCH',  '/admin/collections/' + slug, data); },
+    delete: function(slug)         { return request('DELETE', '/admin/collections/' + slug); },
   },
   items: {
     list:   function(slug)                { return request('GET',    '/admin/collections/' + slug + '/items'); },
@@ -141,6 +142,13 @@ var API = {
   },
   planUsage: {
     get: function() { return request('GET', '/admin/plan-usage'); },
+  },
+  analytics: {
+    get: function(days) {
+      var url = '/admin/analytics';
+      if (days) url += '?days=' + encodeURIComponent(days);
+      return request('GET', url);
+    },
   },
 };
 
