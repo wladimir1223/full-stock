@@ -14,11 +14,11 @@
   </script>
 
   <style>
-    /* Card hover */
-    .product-card { transition: transform .25s ease, box-shadow .25s ease; }
-    .product-card:hover { transform: translateY(-6px); box-shadow: 0 24px 48px rgba(99,102,241,.18); }
+    /* Card hover — subtler lift */
+    .product-card { transition: transform .22s ease, box-shadow .22s ease; }
+    .product-card:hover { transform: translateY(-4px); box-shadow: 0 18px 36px rgba(99,102,241,.13); }
 
-    /* Skeleton */
+    /* Skeleton shimmer */
     .skeleton {
       background: linear-gradient(90deg, #1e293b 25%, #2d3f57 50%, #1e293b 75%);
       background-size: 200% 100%;
@@ -27,81 +27,117 @@
     }
     @keyframes shimmer { to { background-position: -200% 0; } }
 
-    /* Spinner */
+    /* Spinner (checkout loading state) */
     @keyframes spin { to { transform: rotate(360deg); } }
-    .spin { display:inline-block; width:1rem; height:1rem;
-            border:2px solid rgba(255,255,255,.3); border-top-color:#fff;
-            border-radius:50%; animation:spin .6s linear infinite;
-            vertical-align:middle; margin-right:.4rem; }
-
-    /* Toast */
-    @keyframes toastIn  { from{opacity:0;transform:translate(-50%,14px)} to{opacity:1;transform:translate(-50%,0)} }
-    @keyframes toastOut { from{opacity:1;transform:translate(-50%,0)}    to{opacity:0;transform:translate(-50%,14px)} }
-
-    /* Modal fade */
-    @keyframes modalIn  { from{opacity:0;transform:scale(.96)} to{opacity:1;transform:scale(1)} }
-
-    /* Collection divider */
-    .col-title::before {
-      content:''; display:inline-block; width:4px; height:1.1em;
-      background:linear-gradient(180deg,#6366f1,#8b5cf6); border-radius:2px;
-      margin-right:.6rem; vertical-align:middle;
+    .spin {
+      display: inline-block; width: 1rem; height: 1rem;
+      border: 2px solid rgba(255,255,255,.3); border-top-color: #fff;
+      border-radius: 50%; animation: spin .6s linear infinite;
+      vertical-align: middle; margin-right: .4rem;
     }
 
-    /* Scrollbar */
-    .no-sb { -ms-overflow-style:none; scrollbar-width:none; }
-    .no-sb::-webkit-scrollbar { display:none; }
+    /* Toast animations */
+    @keyframes toastIn  { from{opacity:0;transform:translate(-50%,12px)} to{opacity:1;transform:translate(-50%,0)} }
+    @keyframes toastOut { from{opacity:1;transform:translate(-50%,0)}    to{opacity:0;transform:translate(-50%,12px)} }
 
-    /* Input focus ring */
-    .modal-input:focus { border-color:#6366f1 !important;
-                          box-shadow:0 0 0 3px rgba(99,102,241,.2); }
+    /* Modal entrance */
+    @keyframes modalIn  { from{opacity:0;transform:scale(.96)} to{opacity:1;transform:scale(1)} }
 
-    /* CSP-safe hover — sin onmouseover/onmouseout inline */
-    .btn-modal-close { color:#475569; transition:color .15s; }
-    .btn-modal-close:hover { color:#94a3b8; }
+    /* Section heading accent bar */
+    .col-title::before {
+      content: ''; display: inline-block;
+      width: 3px; height: 1em;
+      background: #6366f1; border-radius: 2px;
+      margin-right: .55rem; vertical-align: middle;
+    }
 
-    /* Ocultar flechas nativas de input[type=number] (Chrome/Safari/Firefox) */
+    /* Hide scrollbar utility */
+    .no-sb { -ms-overflow-style: none; scrollbar-width: none; }
+    .no-sb::-webkit-scrollbar { display: none; }
+
+    /* Modal input focus ring */
+    .modal-input:focus {
+      border-color: #6366f1 !important;
+      box-shadow: 0 0 0 3px rgba(99,102,241,.18);
+    }
+
+    /* Modal close button hover (CSP-safe) */
+    .btn-modal-close { color: #475569; transition: color .15s; }
+    .btn-modal-close:hover { color: #94a3b8; }
+
+    /* Qty buttons */
+    .btn-qty {
+      width: 2.25rem; height: 2.25rem; border-radius: .5rem;
+      border: 1px solid #334155; background: #0f172a;
+      color: #e2e8f0; font-size: 1.25rem; font-weight: 300; line-height: 1;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; transition: background .15s, border-color .15s;
+      user-select: none;
+    }
+    .btn-qty:hover  { background: #1e293b; border-color: #6366f1; color: #fff; }
+    .btn-qty:active { background: #334155; }
+
+    /* Hide number-input spin arrows */
     .qty-input::-webkit-outer-spin-button,
     .qty-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
     .qty-input { -moz-appearance: textfield; }
 
-    /* Botones de cantidad en el modal */
-    .btn-qty {
-      width:2.25rem; height:2.25rem; border-radius:.5rem;
-      border:1px solid #334155; background:#0f172a;
-      color:#e2e8f0; font-size:1.35rem; font-weight:300; line-height:1;
-      cursor:pointer; display:flex; align-items:center; justify-content:center;
-      flex-shrink:0; transition:background .15s, border-color .15s;
-      user-select:none;
+    /* Offcanvas drawer */
+    .drawer-panel {
+      transform: translateX(100%);
+      transition: transform .3s cubic-bezier(.4,0,.2,1);
     }
-    .btn-qty:hover  { background:#1e293b; border-color:#6366f1; color:#fff; }
-    .btn-qty:active { background:#334155; }
+    .drawer-panel.is-open { transform: translateX(0); }
+
+    /* Drawer backdrop */
+    .drawer-overlay {
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .3s ease;
+    }
+    .drawer-overlay.is-open { opacity: 1; pointer-events: auto; }
   </style>
 </head>
 
 <body class="dark bg-slate-950 text-slate-100 min-h-screen">
+
 
 <!-- ══════════════════════════════ NAVBAR ══ -->
 <nav class="fixed top-0 left-0 right-0 z-40 bg-slate-900/95 backdrop-blur-sm
             border-b border-slate-800 h-14">
   <div class="max-w-6xl mx-auto px-4 sm:px-6 h-full flex items-center gap-4">
 
-    <a href="#" class="flex items-center gap-2 shrink-0">
-      <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600
-                  flex items-center justify-center shadow-lg">
+    <!-- Logo -->
+    <a href="#" class="flex items-center gap-2.5 shrink-0">
+      <div class="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center">
         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-white"
-             fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+             fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round"
             d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10"/>
         </svg>
       </div>
-      <span class="font-bold text-sm hidden sm:inline">
-        <span class="text-white" id="nav-store">Tienda</span>
-      </span>
+      <span class="font-semibold text-sm text-slate-200 hidden sm:inline"
+            id="nav-store">Tienda</span>
     </a>
 
-    <div id="nav-tabs" class="flex items-center gap-1 overflow-x-auto no-sb flex-1 justify-center"></div>
-    <span id="nav-count" class="text-xs text-slate-500 shrink-0 hidden sm:block whitespace-nowrap"></span>
+    <!-- Spacer -->
+    <div class="flex-1"></div>
+
+    <!-- Product count -->
+    <span id="nav-count"
+          class="text-xs text-slate-500 shrink-0 hidden md:block whitespace-nowrap"></span>
+
+    <!-- Categories button -->
+    <button data-action="abrir-drawer"
+            class="flex items-center gap-1.5 text-xs font-semibold text-slate-400
+                   hover:text-slate-100 transition px-3 py-2 rounded-lg
+                   border border-slate-700 hover:border-slate-500 hover:bg-slate-800/50">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4"
+           fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h10"/>
+      </svg>
+      Categorías
+    </button>
   </div>
 </nav>
 
@@ -109,19 +145,22 @@
 <!-- ══════════════════════════════ HERO ══ -->
 <div class="pt-14">
   <header class="relative overflow-hidden"
-          style="background:linear-gradient(135deg,#0a0f1e 0%,#130d2e 50%,#0e0a1f 100%)">
-    <div style="position:absolute;top:-100px;right:-80px;width:480px;height:480px;border-radius:50%;
-                pointer-events:none;background:radial-gradient(circle,rgba(99,102,241,.13) 0%,transparent 70%)"></div>
-    <div style="position:absolute;bottom:-60px;left:-60px;width:320px;height:320px;border-radius:50%;
-                pointer-events:none;background:radial-gradient(circle,rgba(139,92,246,.09) 0%,transparent 70%)"></div>
+          style="background:linear-gradient(135deg,#0a0f1e 0%,#0f0d28 50%,#0e0a1f 100%)">
+    <div style="position:absolute;top:-100px;right:-80px;width:480px;height:480px;
+                border-radius:50%;pointer-events:none;
+                background:radial-gradient(circle,rgba(99,102,241,.1) 0%,transparent 70%)"></div>
+    <div style="position:absolute;bottom:-60px;left:-60px;width:320px;height:320px;
+                border-radius:50%;pointer-events:none;
+                background:radial-gradient(circle,rgba(139,92,246,.07) 0%,transparent 70%)"></div>
     <div class="relative max-w-6xl mx-auto px-6 py-14 text-center">
       <div class="inline-flex items-center gap-2 bg-indigo-500/10 border border-indigo-500/20
-                  text-indigo-400 text-xs font-bold uppercase tracking-widest px-4 py-1.5
-                  rounded-full mb-5">
+                  text-indigo-400 text-xs font-semibold uppercase tracking-widest
+                  px-4 py-1.5 rounded-full mb-5">
         <span class="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse"></span>
         Catálogo en vivo
       </div>
-      <h1 class="text-4xl sm:text-5xl font-bold text-white leading-tight mb-3" id="hero-title">Cargando…</h1>
+      <h1 class="text-4xl sm:text-5xl font-bold text-white leading-tight mb-3"
+          id="hero-title">Cargando…</h1>
       <p class="text-slate-400 text-base max-w-md mx-auto" id="hero-sub"></p>
     </div>
   </header>
@@ -134,17 +173,38 @@
        class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6"></div>
   <div id="catalog"></div>
 
+  <!-- Error state -->
   <div id="state-error" class="hidden text-center py-24">
-    <div class="text-5xl mb-4">⚠️</div>
-    <h2 class="text-xl font-bold text-red-400 mb-2">No se pudo cargar la tienda</h2>
-    <p id="error-msg" class="text-slate-500 text-sm mb-6"></p>
+    <div class="w-14 h-14 rounded-full bg-red-900/30 border border-red-900/40
+                flex items-center justify-center mx-auto mb-5">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7 text-red-400"
+           fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round"
+          d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0
+             2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126z
+             M12 15.75h.007v.008H12v-.008z"/>
+      </svg>
+    </div>
+    <h2 class="text-xl font-bold text-slate-200 mb-2">No se pudo cargar la tienda</h2>
+    <p id="error-msg" class="text-slate-500 text-sm mb-6 max-w-sm mx-auto"></p>
     <button data-action="reintentar"
-            class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm
+            class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm
                    px-6 py-2.5 rounded-lg transition">Reintentar</button>
   </div>
 
+  <!-- Empty state -->
   <div id="state-empty" class="hidden text-center py-24">
-    <div class="text-5xl mb-4">📦</div>
+    <div class="w-14 h-14 rounded-full bg-slate-800 border border-slate-700
+                flex items-center justify-center mx-auto mb-5">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7 text-slate-500"
+           fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round"
+          d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0
+             01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504
+             1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504
+             -1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z"/>
+      </svg>
+    </div>
     <h2 class="text-xl font-bold text-slate-300 mb-2">El catálogo está vacío</h2>
     <p class="text-slate-500 text-sm">Agrega productos desde el panel de administración.</p>
   </div>
@@ -156,11 +216,10 @@
   <div class="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row
               items-center justify-between gap-3 text-sm">
     <div class="flex items-center gap-2">
-      <div class="w-6 h-6 rounded-md bg-gradient-to-br from-indigo-500 to-violet-600
-                  flex items-center justify-center">
+      <div class="w-6 h-6 rounded-md bg-indigo-600 flex items-center justify-center">
         <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-white"
-             fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+             fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round"
             d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10"/>
         </svg>
       </div>
@@ -168,10 +227,37 @@
     </div>
     <p class="text-xs text-slate-600 text-center">
       Inventario gestionado por
-      <span class="text-indigo-500 font-semibold">Full Stock</span>
+      <span class="text-indigo-400 font-semibold">Full Stock</span>
     </p>
   </div>
 </footer>
+
+
+<!-- ══════════════════════════════ DRAWER OVERLAY ══ -->
+<div id="drawer-overlay"
+     class="drawer-overlay fixed inset-0 bg-black/60 backdrop-blur-sm"
+     style="z-index:45"></div>
+
+<!-- ══════════════════════════════ DRAWER PANEL ══ -->
+<div id="drawer"
+     class="drawer-panel fixed top-0 right-0 h-full w-64
+            bg-slate-900 border-l border-slate-800 flex flex-col"
+     style="z-index:46">
+  <!-- Header -->
+  <div class="flex items-center justify-between px-5 py-4 border-b border-slate-800">
+    <span class="text-sm font-semibold text-slate-200 tracking-wide">Categorías</span>
+    <button data-action="cerrar-drawer"
+            class="p-1.5 rounded-md text-slate-500 hover:text-slate-300
+                   hover:bg-slate-800 transition">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4"
+           fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+      </svg>
+    </button>
+  </div>
+  <!-- Category links — populated by JS -->
+  <nav id="drawer-links" class="flex-1 overflow-y-auto no-sb py-2 px-2"></nav>
+</div>
 
 
 <!-- ══════════════════════════════ MODAL PEDIDO ══ -->
@@ -185,19 +271,18 @@
 
   <!-- Card -->
   <div style="position:relative;width:100%;max-width:440px;
-              background:#1e293b;border:1px solid #334155;border-radius:1rem;
+              background:#1e293b;border:1px solid #334155;border-radius:.875rem;
               padding:0;z-index:1;animation:modalIn .2s ease-out;
               max-height:90dvh;overflow-y:auto">
 
-    <!-- Header modal -->
+    <!-- Header -->
     <div style="display:flex;align-items:center;justify-content:space-between;
                 padding:1.25rem 1.5rem;border-bottom:1px solid #334155">
       <div>
-        <h2 style="color:#f1f5f9;font-size:1rem;font-weight:700;margin:0 0 .15rem">
-          🛒 Confirmar pedido
-        </h2>
+        <h2 style="color:#f1f5f9;font-size:.9375rem;font-weight:700;
+                   letter-spacing:-.01em;margin:0 0 .15rem">Confirmar pedido</h2>
         <p id="modal-product-name"
-           style="color:#6366f1;font-size:.78rem;font-weight:600;margin:0"></p>
+           style="color:#6366f1;font-size:.78rem;font-weight:500;margin:0"></p>
       </div>
       <button data-action="cerrar-modal"
               class="btn-modal-close"
@@ -210,37 +295,27 @@
       </button>
     </div>
 
-    <!-- Resumen del producto -->
+    <!-- Product summary -->
     <div id="modal-product-summary"
          style="padding:.875rem 1.5rem;background:#0f172a;
                 border-bottom:1px solid #1e293b;display:flex;align-items:center;gap:.875rem">
-      <!-- filled by JS -->
     </div>
 
-    <!-- Selector de Cantidad -->
-    <div style="padding:.875rem 1.5rem;border-bottom:1px solid #334155;background:#0f172a08">
+    <!-- Quantity selector -->
+    <div style="padding:.875rem 1.5rem;border-bottom:1px solid #334155">
       <label style="display:block;font-size:.7rem;font-weight:600;color:#94a3b8;
                      text-transform:uppercase;letter-spacing:.06em;margin-bottom:.55rem">
         Cantidad
       </label>
       <div style="display:flex;align-items:center;gap:.75rem">
-
-        <!-- Botón − -->
         <button id="qty-minus" class="btn-qty" aria-label="Restar cantidad">−</button>
-
-        <!-- Input numérico -->
         <input id="modal-qty" type="number" value="1" min="1" max="99"
                class="modal-input qty-input"
                style="width:3.75rem;text-align:center;padding:.45rem .25rem;
-                      font-size:.95rem;font-weight:700;
-                      background:#0f172a;color:#f1f5f9;
+                      font-size:.95rem;font-weight:700;background:#0f172a;color:#f1f5f9;
                       border:1px solid #334155;border-radius:.5rem;outline:none;
                       transition:border-color .15s"/>
-
-        <!-- Botón + -->
         <button id="qty-plus" class="btn-qty" aria-label="Sumar cantidad">+</button>
-
-        <!-- Total dinámico -->
         <div style="flex:1;text-align:right;min-width:0">
           <span style="display:block;font-size:.65rem;color:#475569;
                        text-transform:uppercase;letter-spacing:.05em;margin-bottom:.1rem">Total</span>
@@ -250,24 +325,22 @@
       </div>
     </div>
 
-    <!-- Formulario -->
+    <!-- Form fields -->
     <div style="padding:1.25rem 1.5rem;display:flex;flex-direction:column;gap:1rem">
 
-      <!-- Nombre -->
       <div>
         <label style="display:block;font-size:.7rem;font-weight:600;color:#94a3b8;
                        text-transform:uppercase;letter-spacing:.06em;margin-bottom:.35rem">
           Tu nombre <span style="color:#ef4444">*</span>
         </label>
         <input id="modal-nombre" type="text" placeholder="Ej: Juan Pérez"
-               autocomplete="name"
-               class="modal-input"
+               autocomplete="name" class="modal-input"
                style="width:100%;box-sizing:border-box;background:#0f172a;
                       border:1px solid #334155;border-radius:.5rem;color:#f1f5f9;
-                      padding:.55rem .75rem;font-size:.875rem;outline:none;transition:border-color .15s"/>
+                      padding:.55rem .75rem;font-size:.875rem;outline:none;
+                      transition:border-color .15s"/>
       </div>
 
-      <!-- Dirección -->
       <div>
         <label style="display:block;font-size:.7rem;font-weight:600;color:#94a3b8;
                        text-transform:uppercase;letter-spacing:.06em;margin-bottom:.35rem">
@@ -275,21 +348,20 @@
         </label>
         <input id="modal-direccion" type="text"
                placeholder="Ej: Av. Principal 123 — o — Retiro en tienda"
-               autocomplete="street-address"
-               class="modal-input"
+               autocomplete="street-address" class="modal-input"
                style="width:100%;box-sizing:border-box;background:#0f172a;
                       border:1px solid #334155;border-radius:.5rem;color:#f1f5f9;
-                      padding:.55rem .75rem;font-size:.875rem;outline:none;transition:border-color .15s"/>
+                      padding:.55rem .75rem;font-size:.875rem;outline:none;
+                      transition:border-color .15s"/>
       </div>
 
-      <!-- Comentario -->
       <div>
         <label style="display:block;font-size:.7rem;font-weight:600;color:#94a3b8;
                        text-transform:uppercase;letter-spacing:.06em;margin-bottom:.35rem">
           Comentario <span style="color:#475569;font-weight:400">(opcional)</span>
         </label>
         <textarea id="modal-comentario" rows="2"
-                  placeholder="Ej: Sin cebolla, pago en efectivo, llegar después de las 18 h…"
+                  placeholder="Ej: Pago en efectivo, llegar después de las 18 h…"
                   class="modal-input"
                   style="width:100%;box-sizing:border-box;background:#0f172a;
                          border:1px solid #334155;border-radius:.5rem;color:#f1f5f9;
@@ -297,20 +369,20 @@
                          resize:vertical;transition:border-color .15s"></textarea>
       </div>
 
-      <!-- Error -->
+      <!-- Inline error -->
       <div id="modal-error"
            style="display:none;background:#450a0a;border:1px solid #7f1d1d;
                   border-radius:.5rem;color:#fca5a5;font-size:.8rem;
                   padding:.65rem 1rem"></div>
 
-      <!-- Botón confirmar -->
+      <!-- Submit button -->
       <button id="modal-confirm-btn"
         style="width:100%;padding:.75rem;border-radius:.625rem;border:none;cursor:pointer;
-               background:linear-gradient(135deg,#25d366,#128c7e);
-               color:#fff;font-weight:700;font-size:.9rem;
-               display:flex;align-items:center;justify-content:center;gap:.5rem;
+               background:linear-gradient(135deg,#25d366,#128c7e);color:#fff;
+               font-weight:700;font-size:.875rem;letter-spacing:.015em;
+               display:flex;align-items:center;justify-content:center;gap:.625rem;
                transition:opacity .15s;margin-top:.25rem">
-        <svg xmlns="http://www.w3.org/2000/svg" style="width:1.15rem;height:1.15rem;flex-shrink:0"
+        <svg xmlns="http://www.w3.org/2000/svg" style="width:1.1rem;height:1.1rem;flex-shrink:0"
              fill="currentColor" viewBox="0 0 24 24">
           <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15
                    -.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463
@@ -332,7 +404,7 @@
       </button>
 
       <p style="text-align:center;font-size:.72rem;color:#475569;margin-top:-.25rem">
-        Se abrirá WhatsApp con el mensaje listo. Solo toca enviar.
+        Se abrirá WhatsApp con el mensaje listo para enviar.
       </p>
     </div>
   </div>
@@ -344,18 +416,16 @@
 'use strict';
 
 // ─── Config ───────────────────────────────────────────────────────────────────
-// El slug del tenant se lee desde el query param ?tenant=SLUG de la URL.
-// Ej: /tienda.html?tenant=julian-repuestos  →  TENANT = 'julian-repuestos'
-// Si no hay ?tenant= la tienda NO carga — se muestra un mensaje de error.
-const TENANT = new URLSearchParams(window.location.search).get('tenant') || '';
+// Slug del tenant leído desde ?tenant=SLUG en la URL.
+// Sin parámetro → se muestra pantalla de error, no se carga nada.
+const TENANT       = new URLSearchParams(window.location.search).get('tenant') || '';
 const CATALOG_URL  = `/api/v1/store/${TENANT}/products`;
 const CHECKOUT_URL = `/api/v1/store/${TENANT}/checkout`;
 
 // ─── Estado global ────────────────────────────────────────────────────────────
-let telefonoTiendaActual = '';   // número sin '+', cargado desde la API del catálogo
-let pendingOrder   = null; // { collectionSlug, productId, name, price }
-
-const stockMap = {};       // { [productId]: currentStock }
+let telefonoTiendaActual = '';   // número sin '+', cargado desde la API
+let pendingOrder         = null; // { collectionSlug, productId, name, price, stock, cardEl }
+const stockMap           = {};   // { [productId]: currentStock }
 
 // ─── Detección de campos ──────────────────────────────────────────────────────
 const ALIASES = {
@@ -373,68 +443,83 @@ function pick(item, type) {
   return null;
 }
 
+// ─── SVG placeholder (sin imagen) ────────────────────────────────────────────
+const SVG_PLACEHOLDER = `
+  <div style="width:100%;height:100%;display:flex;align-items:center;
+              justify-content:center;background:#1e293b">
+    <svg xmlns="http://www.w3.org/2000/svg"
+         style="width:2.75rem;height:2.75rem;color:#334155"
+         fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1">
+      <path stroke-linecap="round" stroke-linejoin="round"
+        d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0
+           01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504
+           1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504
+           -1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z"/>
+    </svg>
+  </div>`;
+
 // ─── Init ─────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   showSkeletons();
   loadCatalog();
 
-  // ── Delegated click handler (CSP-safe: sin ningún onclick="..." en el HTML) ──
-  // Un único listener en document captura todos los clics de la página.
+  // ── Delegated click listener (CSP-safe — sin onclick inline) ──────────────
   document.addEventListener('click', function (e) {
 
-    // 1. Botón "Comprar" de una tarjeta de producto
+    // 1. Botón "Comprar" en tarjeta de producto
     const buyBtn = e.target.closest('[data-action="comprar"]');
-    if (buyBtn) {
-      if (!buyBtn.disabled) abrirModal(buyBtn);
-      return;
-    }
+    if (buyBtn) { if (!buyBtn.disabled) abrirModal(buyBtn); return; }
 
-    // 2. Cerrar modal — backdrop semitransparente
-    if (e.target.id === 'modal-bd') {
-      cerrarModal();
-      return;
-    }
+    // 2. Cerrar modal — backdrop
+    if (e.target.id === 'modal-bd') { cerrarModal(); return; }
 
     // 3. Cerrar modal — botón ✕
-    if (e.target.closest('[data-action="cerrar-modal"]')) {
-      cerrarModal();
-      return;
-    }
+    if (e.target.closest('[data-action="cerrar-modal"]')) { cerrarModal(); return; }
 
     // 4. Confirmar pedido
     const confirmBtn = e.target.closest('#modal-confirm-btn');
-    if (confirmBtn) {
-      if (!confirmBtn.disabled) confirmarPedido();
-      return;
-    }
+    if (confirmBtn) { if (!confirmBtn.disabled) confirmarPedido(); return; }
 
-    // 5. Reintentar carga del catálogo
-    if (e.target.closest('[data-action="reintentar"]')) {
-      loadCatalog();
-      return;
-    }
+    // 5. Reintentar carga
+    if (e.target.closest('[data-action="reintentar"]')) { loadCatalog(); return; }
 
-    // 6. Botón − de cantidad
+    // 6. Cantidad −
     if (e.target.closest('#qty-minus')) {
       const inp = document.getElementById('modal-qty');
-      const val = Math.max(1, (parseInt(inp.value) || 1) - 1);
-      inp.value = String(val);
-      updateTotalPrice();
-      return;
+      inp.value = String(Math.max(1, (parseInt(inp.value) || 1) - 1));
+      updateTotalPrice(); return;
     }
 
-    // 7. Botón + de cantidad
+    // 7. Cantidad +
     if (e.target.closest('#qty-plus')) {
       const inp = document.getElementById('modal-qty');
-      const max = parseInt(inp.max) || 99;
-      const val = Math.min(max, (parseInt(inp.value) || 1) + 1);
-      inp.value = String(val);
-      updateTotalPrice();
+      inp.value = String(Math.min(parseInt(inp.max) || 99, (parseInt(inp.value) || 1) + 1));
+      updateTotalPrice(); return;
+    }
+
+    // 8. Abrir drawer de categorías
+    if (e.target.closest('[data-action="abrir-drawer"]')) { abrirDrawer(); return; }
+
+    // 9. Cerrar drawer — botón ✕
+    if (e.target.closest('[data-action="cerrar-drawer"]')) { cerrarDrawer(); return; }
+
+    // 10. Cerrar drawer — overlay
+    if (e.target.id === 'drawer-overlay') { cerrarDrawer(); return; }
+
+    // 11. Link de categoría en el drawer
+    const catLink = e.target.closest('[data-action="nav-cat"]');
+    if (catLink) {
+      cerrarDrawer();
+      const target = document.getElementById(catLink.dataset.target);
+      if (target) {
+        // Esperar a que termine la animación de cierre antes de hacer scroll
+        setTimeout(() => target.scrollIntoView({ behavior: 'smooth', block: 'start' }), 320);
+      }
       return;
     }
   });
 
-  // Input directo en el campo de cantidad (teclado / pegar)
+  // Input directo en el campo de cantidad
   document.getElementById('modal-qty').addEventListener('input', function () {
     const max = parseInt(this.max) || 99;
     let val   = parseInt(this.value) || 1;
@@ -449,11 +534,10 @@ document.addEventListener('DOMContentLoaded', () => {
 async function loadCatalog() {
   hide('state-error'); hide('state-empty'); hide('catalog');
 
-  // Sin slug de tenant: mostrar error sin hacer ninguna petición
+  // Sin slug → mostrar error sin hacer ninguna petición
   if (!TENANT) {
     document.getElementById('error-msg').textContent =
       'Tienda no encontrada. Por favor, solicita el enlace correcto al vendedor.';
-    // Ocultar "Reintentar" — sin slug, reintentar no sirve de nada
     const retryBtn = document.querySelector('[data-action="reintentar"]');
     if (retryBtn) retryBtn.style.display = 'none';
     show('state-error');
@@ -469,7 +553,6 @@ async function loadCatalog() {
 
     hide('skeleton-grid');
 
-    // Guardar número de WhatsApp del tenant (sin '+', solo dígitos)
     telefonoTiendaActual = (json.tenantWhatsapp || '').replace(/\D/g, '');
 
     const collections = (json.collections || []).filter(c => c.items && c.items.length);
@@ -478,8 +561,8 @@ async function loadCatalog() {
     if (collections.length === 0) { show('state-empty'); return; }
 
     const storeLabel = json.tenantName || toLabel(TENANT);
-    document.getElementById('hero-title').textContent = storeLabel;
-    document.getElementById('hero-sub').textContent   =
+    document.getElementById('hero-title').textContent  = storeLabel;
+    document.getElementById('hero-sub').textContent    =
       `${totalItems} producto${totalItems !== 1 ? 's' : ''} disponible${totalItems !== 1 ? 's' : ''}`;
     document.getElementById('nav-store').textContent   = storeLabel;
     document.getElementById('footer-name').textContent = storeLabel;
@@ -487,7 +570,7 @@ async function loadCatalog() {
       `${totalItems} producto${totalItems !== 1 ? 's' : ''}`;
     document.title = `${storeLabel} — Tienda`;
 
-    buildNavTabs(collections);
+    buildDrawerLinks(collections);
     renderCatalog(collections);
     show('catalog');
 
@@ -498,34 +581,49 @@ async function loadCatalog() {
   }
 }
 
-// ─── Tabs ─────────────────────────────────────────────────────────────────────
-function buildNavTabs(collections) {
-  document.getElementById('nav-tabs').innerHTML = collections.map(col => `
-    <a href="#col-${esc(col.slug)}"
-       class="text-xs font-medium px-3 py-1.5 rounded-md text-slate-400
-              hover:text-white hover:bg-slate-800 transition whitespace-nowrap">
+// ─── Drawer ───────────────────────────────────────────────────────────────────
+function buildDrawerLinks(collections) {
+  document.getElementById('drawer-links').innerHTML = collections.map(col => `
+    <button data-action="nav-cat" data-target="col-${esc(col.slug)}"
+            class="w-full text-left px-3 py-2.5 rounded-md text-sm font-medium
+                   text-slate-400 hover:text-slate-100 hover:bg-slate-800
+                   transition-colors flex items-center gap-3">
+      <span style="width:.375rem;height:.375rem;border-radius:50%;
+                   background:#6366f1;flex-shrink:0;display:inline-block"></span>
       ${esc(col.name)}
-    </a>
+    </button>
   `).join('');
 }
 
-// ─── Render secciones ────────────────────────────────────────────────────────
+function abrirDrawer() {
+  document.getElementById('drawer').classList.add('is-open');
+  document.getElementById('drawer-overlay').classList.add('is-open');
+  document.body.style.overflow = 'hidden';
+}
+
+function cerrarDrawer() {
+  document.getElementById('drawer').classList.remove('is-open');
+  document.getElementById('drawer-overlay').classList.remove('is-open');
+  document.body.style.overflow = '';
+}
+
+// ─── Render secciones ─────────────────────────────────────────────────────────
 function renderCatalog(collections) {
   const wrap = document.getElementById('catalog');
   wrap.innerHTML = '';
 
   collections.forEach((col, ci) => {
-    const section = document.createElement('section');
+    const section     = document.createElement('section');
     section.id        = `col-${col.slug}`;
     section.className = ci > 0 ? 'mt-14' : '';
 
-    const h2 = document.createElement('h2');
-    h2.className   = 'col-title text-xl font-bold text-slate-200 mb-6';
-    h2.textContent = col.name;
+    const h2          = document.createElement('h2');
+    h2.className      = 'col-title text-lg font-bold text-slate-200 mb-6';
+    h2.textContent    = col.name;
     section.appendChild(h2);
 
-    const grid = document.createElement('div');
-    grid.className = 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6';
+    const grid        = document.createElement('div');
+    grid.className    = 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6';
 
     col.items.forEach(item => {
       stockMap[item.id] = Number(item.stock ?? 0);
@@ -545,31 +643,29 @@ function buildCard(item, collectionSlug) {
   const img   = pick(item, 'img');
   const stock = Number(item.stock ?? 0);
 
-  const card = document.createElement('article');
+  const card         = document.createElement('article');
   card.className     = 'product-card bg-slate-900 border border-slate-800 rounded-xl overflow-hidden';
   card.dataset.id    = item.id;
   card.dataset.colsl = collectionSlug;
 
   const imgHTML = img
     ? `<img src="${esc(img)}" alt="${esc(name)}"
-            class="w-full h-full object-cover transition duration-500 hover:scale-110"
+            class="w-full h-full object-cover transition duration-500 hover:scale-105"
             loading="lazy">`
-    : `<div class="h-52 bg-slate-800 flex items-center justify-center text-5xl">📦</div>`;
+    : SVG_PLACEHOLDER;
 
   const priceHTML = price != null
-    ? `<span class="inline-block bg-gradient-to-r from-indigo-600 to-violet-600
-                    text-white text-xs font-bold px-2.5 py-0.5 rounded-full">
+    ? `<span class="inline-block bg-indigo-600 text-white text-xs font-semibold
+                    px-2.5 py-0.5 rounded-md tracking-wide">
          $${Number(price).toFixed(2)}
        </span>`
     : '';
 
-  // Guardar los datos del producto como data-* para evitar problemas de escapado
-  // en strings interpolados dentro de onclick (apóstrofes, comillas, URLs, etc.)
   const btnHTML = stock <= 0
     ? `<button disabled
-               class="w-full mt-4 py-2.5 rounded-lg text-sm font-semibold
-                      bg-slate-800 text-slate-600 cursor-not-allowed border
-                      border-slate-700 btn-buy">Sin stock</button>`
+               class="w-full mt-4 py-2.5 rounded-lg text-sm font-medium
+                      bg-slate-800 text-slate-600 cursor-not-allowed
+                      border border-slate-700 btn-buy">Sin stock</button>`
     : `<button
          data-action="comprar"
          data-colslug="${esc(collectionSlug)}"
@@ -578,19 +674,17 @@ function buildCard(item, collectionSlug) {
          data-price="${price != null ? Number(price) : 0}"
          data-img="${esc(img || '')}"
          data-stock="${stock}"
-         class="w-full mt-4 py-2.5 rounded-lg text-sm font-bold
-                bg-gradient-to-r from-indigo-600 to-violet-600
-                hover:from-indigo-500 hover:to-violet-500 text-white
-                transition-all duration-200 hover:shadow-lg
-                hover:shadow-indigo-900/40 active:scale-[.97] btn-buy">
-         🛍 Comprar
+         class="w-full mt-4 py-2.5 rounded-lg text-sm font-semibold
+                bg-indigo-600 hover:bg-indigo-500 text-white
+                transition-colors duration-150 btn-buy">
+         Comprar
        </button>`;
 
   card.innerHTML = `
-    <div class="overflow-hidden h-52 bg-slate-800">${imgHTML}</div>
+    <div class="overflow-hidden h-48 bg-slate-800">${imgHTML}</div>
     <div class="p-4">
       <div class="flex items-start justify-between gap-2 mb-2">
-        <h3 class="font-bold text-slate-100 text-sm leading-snug flex-1">${esc(name)}</h3>
+        <h3 class="font-semibold text-slate-100 text-sm leading-snug flex-1">${esc(name)}</h3>
         ${priceHTML}
       </div>
       ${desc
@@ -600,13 +694,12 @@ function buildCard(item, collectionSlug) {
       ${btnHTML}
     </div>`;
 
-  // CSP no permite onerror inline — lo añadimos vía addEventListener
+  // CSP no permite onerror inline — se añade vía JS
   if (img) {
     const imgEl = card.querySelector('img');
     if (imgEl) {
       imgEl.addEventListener('error', function () {
-        this.parentElement.innerHTML =
-          '<div class="h-52 bg-slate-800 flex items-center justify-center text-5xl">📦</div>';
+        this.parentElement.innerHTML = SVG_PLACEHOLDER;
       });
     }
   }
@@ -614,12 +707,9 @@ function buildCard(item, collectionSlug) {
   return card;
 }
 
-// ─── Abrir modal ─────────────────────────────────────────────────────────────
+// ─── Abrir modal ──────────────────────────────────────────────────────────────
 function abrirModal(btnEl) {
   try {
-    console.log('[abrirModal] click recibido', btnEl);
-
-    // Leer datos desde los atributos data-* del botón
     const colslug = btnEl.dataset.colslug;
     const id      = btnEl.dataset.id;
     const name    = btnEl.dataset.name;
@@ -628,25 +718,36 @@ function abrirModal(btnEl) {
     const stock   = parseInt(btnEl.dataset.stock) || 1;
     const card    = btnEl.closest('article');
 
-    console.log('[abrirModal] datos leídos:', { colslug, id, name, price, img, stock, card });
-
     if (!colslug || !id) {
-      console.error('[abrirModal] Faltan datos en el dataset del botón:', btnEl.dataset);
-      toast('error', '❌ Error al leer los datos del producto. Recarga la página.');
+      toast('error', 'Error al leer los datos del producto. Recarga la página.');
       return;
     }
 
     pendingOrder = { collectionSlug: colslug, productId: id, name, price, stock, cardEl: card };
-    console.log('[abrirModal] pendingOrder establecido:', pendingOrder);
 
-    // Rellenar resumen del producto
+    // Resumen del producto
     const summaryEl = document.getElementById('modal-product-summary');
     document.getElementById('modal-product-name').textContent = name;
+
+    const thumbHTML = img
+      ? `<img src="${esc(img)}" alt="${esc(name)}"
+              style="width:3.5rem;height:3.5rem;object-fit:cover;border-radius:.5rem;flex-shrink:0">`
+      : `<div style="width:3.5rem;height:3.5rem;background:#0f172a;border:1px solid #334155;
+                     border-radius:.5rem;flex-shrink:0;display:flex;align-items:center;
+                     justify-content:center">
+           <svg xmlns="http://www.w3.org/2000/svg"
+                style="width:1.4rem;height:1.4rem;color:#334155"
+                fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+             <path stroke-linecap="round" stroke-linejoin="round"
+               d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0
+                  01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504
+                  1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504
+                  -1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z"/>
+           </svg>
+         </div>`;
+
     summaryEl.innerHTML = `
-      ${img
-        ? `<img src="${esc(img)}" alt="${esc(name)}"
-                style="width:3.5rem;height:3.5rem;object-fit:cover;border-radius:.5rem;flex-shrink:0">`
-        : '<div style="width:3.5rem;height:3.5rem;background:#1e293b;border-radius:.5rem;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1.5rem">📦</div>'}
+      ${thumbHTML}
       <div>
         <p style="color:#e2e8f0;font-weight:600;font-size:.875rem;margin:0 0 .25rem">${esc(name)}</p>
         <p style="color:#94a3b8;font-size:.78rem;margin:0 0 .1rem">
@@ -654,32 +755,35 @@ function abrirModal(btnEl) {
             ? `Precio unitario: <strong style="color:#6366f1">$${Number(price).toFixed(2)}</strong>`
             : 'Precio a consultar'}
         </p>
-        <p style="color:#475569;font-size:.72rem;margin:0">Stock disponible: <strong style="color:#94a3b8">${stock}</strong></p>
+        <p style="color:#475569;font-size:.72rem;margin:0">
+          Stock disponible: <strong style="color:#94a3b8">${stock}</strong>
+        </p>
       </div>`;
-    // onerror inline está bloqueado por CSP — lo añadimos vía JS
+
     if (img) {
       const thumbEl = summaryEl.querySelector('img');
       if (thumbEl) thumbEl.addEventListener('error', function () { this.style.display = 'none'; });
     }
 
-    // Resetear y configurar selector de cantidad
+    // Resetear selector de cantidad
     const qtyInput = document.getElementById('modal-qty');
     qtyInput.value = '1';
     qtyInput.max   = String(stock);
-
-    // Actualizar total dinámico
     updateTotalPrice();
 
-    // Limpiar campos y errores
+    // Limpiar campos
     document.getElementById('modal-nombre').value     = '';
     document.getElementById('modal-direccion').value  = '';
     document.getElementById('modal-comentario').value = '';
     document.getElementById('modal-error').style.display = 'none';
 
-    const btn = document.getElementById('modal-confirm-btn');
+    // Restaurar botón a estado inicial
+    const btn    = document.getElementById('modal-confirm-btn');
     btn.disabled = false;
+    btn.style.background = 'linear-gradient(135deg,#25d366,#128c7e)';
+    btn.style.color      = '#fff';
     btn.innerHTML = `
-      <svg xmlns="http://www.w3.org/2000/svg" style="width:1.15rem;height:1.15rem;flex-shrink:0"
+      <svg xmlns="http://www.w3.org/2000/svg" style="width:1.1rem;height:1.1rem;flex-shrink:0"
            fill="currentColor" viewBox="0 0 24 24">
         <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15
                  -.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463
@@ -702,11 +806,10 @@ function abrirModal(btnEl) {
     document.getElementById('modal-order').style.display = 'flex';
     document.body.style.overflow = 'hidden';
     setTimeout(() => document.getElementById('modal-nombre').focus(), 120);
-    console.log('[abrirModal] modal abierto correctamente');
 
   } catch (err) {
-    console.error('[abrirModal] Error inesperado:', err);
-    toast('error', '❌ Error inesperado al abrir el modal. Recarga la página.');
+    console.error('[abrirModal]', err);
+    toast('error', 'Error inesperado. Recarga la página.');
   }
 }
 
@@ -721,63 +824,53 @@ function updateTotalPrice() {
   if (!pendingOrder) return;
   const qtyInput = document.getElementById('modal-qty');
   const qty      = Math.max(1, parseInt(qtyInput ? qtyInput.value : '1') || 1);
-  const total    = pendingOrder.price * qty;
   const el       = document.getElementById('modal-total-price');
   if (!el) return;
-  el.textContent = pendingOrder.price > 0 ? `$${total.toFixed(2)}` : '—';
+  el.textContent = pendingOrder.price > 0
+    ? `$${(pendingOrder.price * qty).toFixed(2)}`
+    : '—';
 }
 
-// Cerrar con Escape
+// ─── Escape ───────────────────────────────────────────────────────────────────
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') cerrarModal();
+  if (e.key === 'Escape') { cerrarModal(); cerrarDrawer(); }
 });
 
 // ─── Confirmar pedido ─────────────────────────────────────────────────────────
 async function confirmarPedido() {
-  console.log('[confirmarPedido] inicio — pendingOrder:', pendingOrder);
-  if (!pendingOrder) {
-    console.error('[confirmarPedido] pendingOrder es null, abortando');
-    return;
-  }
+  if (!pendingOrder) return;
 
-  const nombre    = document.getElementById('modal-nombre').value.trim();
-  const direccion = document.getElementById('modal-direccion').value.trim();
-  const comentario= document.getElementById('modal-comentario').value.trim();
-  const qty       = Math.max(1, parseInt(document.getElementById('modal-qty').value) || 1);
-  const errEl     = document.getElementById('modal-error');
+  const nombre     = document.getElementById('modal-nombre').value.trim();
+  const direccion  = document.getElementById('modal-direccion').value.trim();
+  const comentario = document.getElementById('modal-comentario').value.trim();
+  const qty        = Math.max(1, parseInt(document.getElementById('modal-qty').value) || 1);
+  const errEl      = document.getElementById('modal-error');
 
-  // Validar campos obligatorios
   if (!nombre) {
-    errEl.textContent   = 'Por favor ingresa tu nombre.';
+    errEl.textContent = 'Por favor ingresa tu nombre.';
     errEl.style.display = '';
     document.getElementById('modal-nombre').focus();
     return;
   }
   if (!direccion) {
-    errEl.textContent   = 'Por favor ingresa la dirección o punto de retiro.';
+    errEl.textContent = 'Por favor ingresa la dirección o punto de retiro.';
     errEl.style.display = '';
     document.getElementById('modal-direccion').focus();
     return;
   }
   errEl.style.display = 'none';
 
-  // Validar que la tienda tiene WhatsApp configurado ANTES de tocar el stock
+  // Validar WhatsApp ANTES de tocar el stock
   if (!telefonoTiendaActual) {
     alert('Esta tienda aún no tiene un número de WhatsApp configurado para recibir pedidos.');
-    return; // Mantener modal abierto sin decrementar stock
+    return;
   }
 
-  const btn = document.getElementById('modal-confirm-btn');
+  const btn     = document.getElementById('modal-confirm-btn');
   btn.disabled  = true;
   btn.innerHTML = '<span class="spin"></span> Verificando stock…';
 
   try {
-    // ── Fase 1: descontar stock en el backend ──────────────────────────────
-    console.log('[confirmarPedido] enviando checkout a:', CHECKOUT_URL, {
-      collectionSlug: pendingOrder.collectionSlug,
-      productId: pendingOrder.productId,
-    });
-
     const res  = await fetch(CHECKOUT_URL, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -790,68 +883,62 @@ async function confirmarPedido() {
       }),
     });
     const json = await res.json();
-    console.log('[confirmarPedido] respuesta del backend:', json);
 
     if (!json.success) {
-      console.warn('[confirmarPedido] backend devolvió error:', json.code, json.message);
-      // Error de stock
       if (json.code === 'INSUFFICIENT_STOCK' || json.code === 'RACE_CONDITION') {
-        // Actualizar tarjeta visualmente
+        // Actualizar tarjeta a "Sin stock"
         if (pendingOrder.cardEl) {
           const stockDiv = pendingOrder.cardEl.querySelector('.stock-badge');
           if (stockDiv) stockDiv.innerHTML = buildStockBadge(0);
-          const buyBtn = pendingOrder.cardEl.querySelector('.btn-buy');
-          if (buyBtn) {
-            buyBtn.disabled   = true;
-            buyBtn.textContent = 'Sin stock';
-            buyBtn.style.cssText =
+          const buyBtnEl = pendingOrder.cardEl.querySelector('.btn-buy');
+          if (buyBtnEl) {
+            buyBtnEl.disabled    = true;
+            buyBtnEl.textContent = 'Sin stock';
+            buyBtnEl.style.cssText =
               'width:100%;margin-top:1rem;padding:.625rem;border-radius:.5rem;' +
               'background:#1e293b;color:#475569;border:1px solid #334155;' +
               'font-size:.875rem;font-weight:600;cursor:not-allowed';
           }
         }
-        errEl.textContent   = '❌ ' + (json.message || 'Producto agotado.');
-        errEl.style.display = '';
-        btn.disabled  = false;
-        btn.innerHTML = 'Sin stock disponible';
+        errEl.textContent    = json.message || 'Producto agotado.';
+        errEl.style.display  = '';
+        btn.disabled         = false;
+        btn.innerHTML        = 'Sin stock disponible';
         btn.style.background = '#1e293b';
         btn.style.color      = '#64748b';
       } else {
         errEl.textContent   = json.message || 'Error al procesar el pedido.';
         errEl.style.display = '';
-        btn.disabled  = false;
-        btn.innerHTML = 'Reintentar';
+        btn.disabled        = false;
+        btn.innerHTML       = 'Reintentar';
       }
       return;
     }
 
-    // ── Fase 2: stock descontado OK → actualizar tarjeta ──────────────────
+    // Stock descontado — actualizar tarjeta
     const orderItem  = json.order.items[0];
     const nuevoStock = Number(orderItem.stockRestante);
-    console.log('[confirmarPedido] stock restante:', nuevoStock);
     stockMap[pendingOrder.productId] = nuevoStock;
 
     if (pendingOrder.cardEl) {
       const stockDiv = pendingOrder.cardEl.querySelector('.stock-badge');
       if (stockDiv) stockDiv.innerHTML = buildStockBadge(nuevoStock);
-
-      const buyBtn = pendingOrder.cardEl.querySelector('.btn-buy');
+      const buyBtnEl = pendingOrder.cardEl.querySelector('.btn-buy');
       if (nuevoStock <= 0) {
-        if (buyBtn) {
-          buyBtn.disabled    = true;
-          buyBtn.textContent = 'Sin stock';
-          buyBtn.style.cssText =
+        if (buyBtnEl) {
+          buyBtnEl.disabled    = true;
+          buyBtnEl.textContent = 'Sin stock';
+          buyBtnEl.style.cssText =
             'width:100%;margin-top:1rem;padding:.625rem;border-radius:.5rem;' +
             'background:#1e293b;color:#475569;border:1px solid #334155;' +
             'font-size:.875rem;font-weight:600;cursor:not-allowed';
         }
       } else {
-        // Actualizar data-stock para la próxima vez que se abra el modal
-        if (buyBtn) buyBtn.dataset.stock = String(nuevoStock);
+        if (buyBtnEl) buyBtnEl.dataset.stock = String(nuevoStock);
       }
     }
 
-    // ── Fase 3: armar y abrir el enlace de WhatsApp ───────────────────────
+    // Mensaje WhatsApp — formato recibo formal, sin emojis
     const storeLabel = document.getElementById('nav-store').textContent || 'la tienda';
     const unitPrice  = pendingOrder.price > 0
       ? `$${Number(pendingOrder.price).toFixed(2)}`
@@ -860,38 +947,31 @@ async function confirmarPedido() {
       ? `$${(Number(pendingOrder.price) * qty).toFixed(2)}`
       : 'a consultar';
     const now        = new Date().toLocaleString('es', {
-      day:'2-digit', month:'short', year:'numeric',
-      hour:'2-digit', minute:'2-digit',
+      day: '2-digit', month: 'short', year: 'numeric',
+      hour: '2-digit', minute: '2-digit',
     });
 
-    let msg =
-      `🛍 *Nuevo Pedido — ${storeLabel}*\n\n` +
-      `👤 *Cliente:* ${nombre}\n` +
-      `📍 *Entrega:* ${direccion}\n`;
-    if (comentario) msg += `💬 *Notas:* ${comentario}\n`;
-    msg +=
-      `\n📦 *Producto:* ${pendingOrder.name}\n` +
-      `🔢 *Cantidad:* ${qty}\n` +
-      `💵 *Precio unitario:* ${unitPrice}\n` +
-      `💰 *Total a pagar:* ${totalStr}\n` +
-      `\n📅 ${now}`;
+    let msg  = `*PEDIDO — ${storeLabel}*\n\n`;
+    msg     += `*Cliente:* ${nombre}\n`;
+    msg     += `*Entrega:* ${direccion}\n`;
+    if (comentario) msg += `*Notas:* ${comentario}\n`;
+    msg     += `\n*Producto:* ${pendingOrder.name}\n`;
+    msg     += `*Cantidad:* ${qty} unidad${qty !== 1 ? 'es' : ''}\n`;
+    msg     += `*Precio unitario:* ${unitPrice}\n`;
+    msg     += `*Total:* ${totalStr}\n`;
+    msg     += `\n${now}`;
 
-    // telefonoTiendaActual ya fue validado arriba y contiene solo dígitos
-    const waText = encodeURIComponent(msg);
-    const waUrl  = `https://wa.me/${telefonoTiendaActual}?text=${waText}`;
-    console.log('[confirmarPedido] abriendo WhatsApp:', waUrl.slice(0, 80) + '…');
-    window.open(waUrl, '_blank');
+    window.open(`https://wa.me/${telefonoTiendaActual}?text=${encodeURIComponent(msg)}`, '_blank');
 
     cerrarModal();
-    toast('success', '✅ ¡Pedido enviado! Revisa WhatsApp para confirmarlo.');
-    console.log('[confirmarPedido] flujo completado con éxito');
+    toast('success', 'Pedido enviado. Revisa WhatsApp para confirmarlo.');
 
   } catch (err) {
-    console.error('[confirmarPedido] error inesperado:', err);
-    errEl.textContent   = '⚠️ Error de conexión. Intenta de nuevo.';
+    console.error('[confirmarPedido]', err);
+    errEl.textContent   = 'Error de conexión. Intenta de nuevo.';
     errEl.style.display = '';
-    btn.disabled  = false;
-    btn.innerHTML = 'Reintentar';
+    btn.disabled        = false;
+    btn.innerHTML       = 'Reintentar';
   }
 }
 
@@ -899,28 +979,28 @@ async function confirmarPedido() {
 function buildStockBadge(n) {
   n = Number(n ?? 0);
   if (n <= 0) {
-    return `<span style="display:inline-flex;align-items:center;gap:.3rem;font-size:.72rem;
-                         font-weight:600;padding:.2rem .6rem;border-radius:9999px;
-                         background:rgba(127,29,29,.4);color:#f87171;border:1px solid rgba(127,29,29,.4)">
-              ⚠ Agotado</span>`;
+    return `<span style="display:inline-flex;align-items:center;font-size:.7rem;font-weight:600;
+                         padding:.15rem .6rem;border-radius:.375rem;
+                         background:rgba(127,29,29,.3);color:#f87171;
+                         border:1px solid rgba(239,68,68,.2)">Agotado</span>`;
   }
   if (n <= 5) {
-    return `<span style="display:inline-flex;align-items:center;gap:.3rem;font-size:.72rem;
-                         font-weight:600;padding:.2rem .6rem;border-radius:9999px;
-                         background:rgba(120,53,15,.4);color:#fbbf24;border:1px solid rgba(120,53,15,.4)">
-              ▲ Últimas ${n}</span>`;
+    return `<span style="display:inline-flex;align-items:center;font-size:.7rem;font-weight:600;
+                         padding:.15rem .6rem;border-radius:.375rem;
+                         background:rgba(120,53,15,.3);color:#fbbf24;
+                         border:1px solid rgba(245,158,11,.2)">Últimas ${n} unidades</span>`;
   }
-  return `<span style="display:inline-flex;align-items:center;gap:.3rem;font-size:.72rem;
-                       font-weight:600;padding:.2rem .6rem;border-radius:9999px;
-                       background:rgba(6,78,59,.4);color:#34d399;border:1px solid rgba(6,78,59,.4)">
-            ✓ ${n} en stock</span>`;
+  return `<span style="display:inline-flex;align-items:center;font-size:.7rem;font-weight:600;
+                       padding:.15rem .6rem;border-radius:.375rem;
+                       background:rgba(6,78,59,.3);color:#34d399;
+                       border:1px solid rgba(52,211,153,.2)">${n} en stock</span>`;
 }
 
 // ─── Skeletons ────────────────────────────────────────────────────────────────
 function showSkeletons() {
   document.getElementById('skeleton-grid').innerHTML = Array(8).fill(`
     <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-      <div class="skeleton h-52 w-full rounded-none"></div>
+      <div class="skeleton h-48 w-full rounded-none"></div>
       <div class="p-4 space-y-2.5">
         <div class="flex justify-between gap-2">
           <div class="skeleton h-4 flex-1"></div>
@@ -929,7 +1009,7 @@ function showSkeletons() {
         <div class="skeleton h-3 w-full"></div>
         <div class="skeleton h-3 w-3/4"></div>
         <div class="skeleton h-4 w-28 mt-1"></div>
-        <div class="skeleton h-10 w-full mt-2"></div>
+        <div class="skeleton h-9 w-full mt-2"></div>
       </div>
     </div>
   `).join('');
@@ -943,18 +1023,18 @@ function toast(type, msg) {
     setTimeout(() => prev.remove(), 200);
   }
   const colors = {
-    success: 'background:#065f46;border-color:#059669',
+    success: 'background:#064e3b;border-color:#065f46',
     error:   'background:#7f1d1d;border-color:#991b1b',
     info:    'background:#1e293b;border-color:#334155',
   };
   const el = document.createElement('div');
-  el.className = 'fs-toast';
+  el.className  = 'fs-toast';
   el.style.cssText =
     'position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);z-index:9999;' +
-    'display:flex;align-items:center;gap:.625rem;padding:.7rem 1.35rem;' +
-    'border-radius:9999px;border:1px solid;font-size:.875rem;font-weight:600;color:#fff;' +
-    'white-space:nowrap;max-width:calc(100vw - 2rem);' +
-    'box-shadow:0 10px 30px rgba(0,0,0,.4);animation:toastIn .25s ease;' +
+    'display:flex;align-items:center;gap:.5rem;padding:.65rem 1.25rem;' +
+    'border-radius:.5rem;border:1px solid;font-size:.8125rem;font-weight:500;color:#fff;' +
+    'white-space:nowrap;max-width:calc(100vw - 2rem);letter-spacing:.01em;' +
+    'box-shadow:0 8px 24px rgba(0,0,0,.4);animation:toastIn .25s ease;' +
     (colors[type] || colors.info);
   el.textContent = msg;
   document.body.appendChild(el);
