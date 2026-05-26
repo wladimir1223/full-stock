@@ -73,7 +73,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 2. Cerrar modal — backdrop
     if (e.target.id === 'modal-bd') { cerrarModal(); return; }
 
-    // 3. Cerrar modal — botón ✕
+    // 3. Cerrar modal — botón X
     if (e.target.closest('[data-action="cerrar-modal"]')) { cerrarModal(); return; }
 
     // 4. Confirmar pedido
@@ -100,7 +100,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 8. Abrir drawer de categorías
     if (e.target.closest('[data-action="abrir-drawer"]')) { abrirDrawer(); return; }
 
-    // 9. Cerrar drawer — botón ✕
+    // 9. Cerrar drawer — botón X
     if (e.target.closest('[data-action="cerrar-drawer"]')) { cerrarDrawer(); return; }
 
     // 10. Cerrar drawer — overlay

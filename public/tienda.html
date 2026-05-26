@@ -3,6 +3,10 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <!-- Evita que los proxies y navegadores sirvan versiones en caché del HTML -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
+  <meta http-equiv="Pragma" content="no-cache"/>
+  <meta http-equiv="Expires" content="0"/>
   <title id="page-title">Tienda — Full Stock</title>
 
   <script src="https://cdn.tailwindcss.com"></script>
@@ -431,7 +435,7 @@
 <!-- ══════════════════════════════ SCRIPT ══ -->
 <!-- JS externo en /js/tienda.js — sin inline handlers, CSP-compliant.
      Todos los eventos (drawer, modal, checkout) se registran vía addEventListener. -->
-<script src="/js/tienda.js?v=1"></script>
+<script src="/js/tienda.js?v=2"></script>
 
 </body>
 </html>
