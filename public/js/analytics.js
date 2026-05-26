@@ -76,9 +76,9 @@ const Analytics = (() => {
         </div>
 
         <!-- KPI Cards (skeleton mientras carga) -->
+        <!-- grid-cols responsive: 1 col en móvil → 2 en sm → 3 en lg -->
         <div id="analytics-kpis"
-             style="display:grid;gap:1rem;margin-bottom:1.5rem;
-                    grid-template-columns:repeat(auto-fit,minmax(180px,1fr))">
+             class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
           ${kpiSkeleton()}
           ${kpiSkeleton()}
           ${kpiSkeleton()}
@@ -100,9 +100,8 @@ const Analytics = (() => {
           </div>
         </div>
 
-        <!-- Top Productos + Canales -->
-        <div style="display:grid;gap:1rem;
-             grid-template-columns:repeat(auto-fit,minmax(260px,1fr))">
+        <!-- Top Productos + Canales: 1 col en móvil → 2 cols en lg -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
 
           <!-- Top productos -->
           <div style="background:#1e293b;border:1px solid #334155;

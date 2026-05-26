@@ -180,6 +180,23 @@
 
     /* ── Tabla hover en superadmin ───────────────────────────────── */
     .sa-row:hover { background: #162032; }
+
+    /* ── Tap-target mínimo en móvil (44 px recomendado por WCAG) ───── */
+    @media (max-width: 767px) {
+      /* Botones con clase utilitaria */
+      .btn-primary, .btn-secondary, .btn-danger {
+        padding: 0.75rem 1.25rem;
+        min-height: 2.75rem;
+      }
+      /* Botones de acción del header (soporte / logout / hamburguesa) */
+      #nav-menu-btn, #support-btn, #logout-btn {
+        min-width:  2.75rem;
+        min-height: 2.75rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+    }
   </style>
 </head>
 <body class="bg-slate-950 text-slate-100">
@@ -206,12 +223,12 @@
   <!-- Scripts — orden importante: api → módulos → orquestador -->
   <script src="/js/api.js?v=12"></script>
   <script src="/js/builder.js?v=11"></script>
-  <script src="/js/content.js?v=14"></script>
+  <script src="/js/content.js?v=15"></script>
   <script src="/js/catalog.js?v=13"></script>
-  <script src="/js/superadmin.js?v=14"></script>
+  <script src="/js/superadmin.js?v=15"></script>
   <script src="/js/apihub.js?v=2"></script>
   <script src="/js/settings.js?v=13"></script>
-  <script src="/js/analytics.js?v=1"></script>
+  <script src="/js/analytics.js?v=2"></script>
   <script src="/js/app.js?v=15"></script>
 </body>
 </html>

@@ -14,8 +14,9 @@ const Content = (() => {
   async function render(container, options) {
     options = options || {};
     container.innerHTML = `
-      <div class="flex gap-6 h-full">
-        <aside class="w-56 shrink-0">
+      <div class="flex flex-col lg:flex-row gap-4 lg:gap-6">
+        <!-- Categorías: barra lateral en desktop, bloque completo en móvil -->
+        <aside class="lg:w-48 xl:w-56 shrink-0">
           <h2 class="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-3">
             Mis Categorías
           </h2>
@@ -56,7 +57,7 @@ const Content = (() => {
       data.forEach(col => {
         const btn = document.createElement('button');
         btn.className =
-          'w-full text-left px-3 py-2 rounded-lg text-sm text-slate-300 ' +
+          'w-full text-left px-3 py-3 lg:py-2 rounded-lg text-sm text-slate-300 ' +
           'hover:bg-slate-700 hover:text-white transition nav-item';
         btn.dataset.slug = col.slug;
         btn.innerHTML = `
@@ -178,7 +179,7 @@ const Content = (() => {
             <button id="edit-collection-btn"
               title="Editar nombre de esta categoría"
               style="display:flex;align-items:center;justify-content:center;
-                     width:1.875rem;height:1.875rem;border-radius:.4rem;flex-shrink:0;
+                     width:2.75rem;height:2.75rem;border-radius:.4rem;flex-shrink:0;
                      background:transparent;border:1px solid #334155;
                      color:#475569;cursor:pointer;transition:all .15s">
               <svg xmlns="http://www.w3.org/2000/svg"
@@ -301,12 +302,12 @@ const Content = (() => {
     return `
       <tr class="hover:bg-slate-800/50 transition" data-id="${item.id}">
         ${cells}
-        <td class="px-4 py-3 text-right whitespace-nowrap">
-          ${hasStock ? `<button class="text-emerald-400 hover:text-emerald-300 text-xs font-semibold mr-3 btn-sell"
+        <td class="px-3 py-2 text-right whitespace-nowrap">
+          ${hasStock ? `<button class="inline-flex items-center text-emerald-400 hover:text-emerald-300 text-xs font-semibold py-2 px-2.5 rounded-lg hover:bg-emerald-950/30 transition btn-sell"
             data-id="${item.id}">Vender 1</button>` : ''}
-          <button class="text-indigo-400 hover:text-indigo-300 text-xs font-medium mr-3 btn-edit"
+          <button class="inline-flex items-center text-indigo-400 hover:text-indigo-300 text-xs font-medium py-2 px-2.5 rounded-lg hover:bg-indigo-950/30 transition btn-edit"
             data-id="${item.id}">Editar</button>
-          <button class="text-red-400 hover:text-red-300 text-xs font-medium btn-delete"
+          <button class="inline-flex items-center text-red-400 hover:text-red-300 text-xs font-medium py-2 px-2.5 rounded-lg hover:bg-red-950/30 transition btn-delete"
             data-id="${item.id}">Eliminar</button>
         </td>
       </tr>

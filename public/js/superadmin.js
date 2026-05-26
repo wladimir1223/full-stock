@@ -102,13 +102,13 @@ const SuperAdmin = (() => {
           <div style="display:flex;gap:.625rem;align-items:center;flex-wrap:wrap">
             <input id="sa-filter-tenant" type="text" placeholder="Filtrar por slug…"
               style="background:#0f172a;border:1px solid #334155;border-radius:.5rem;
-                     color:#f1f5f9;padding:.4rem .75rem;font-size:.8rem;outline:none;
-                     width:150px;transition:border-color .15s"/>
+                     color:#f1f5f9;padding:.6rem .75rem;font-size:.8rem;outline:none;
+                     width:150px;transition:border-color .15s;min-height:2.75rem"/>
 
             <select id="sa-filter-limit"
               style="background:#0f172a;border:1px solid #334155;border-radius:.5rem;
-                     color:#f1f5f9;padding:.4rem .75rem;font-size:.8rem;
-                     outline:none;cursor:pointer">
+                     color:#f1f5f9;padding:.6rem .75rem;font-size:.8rem;
+                     outline:none;cursor:pointer;min-height:2.75rem">
               <option value="50">50 logs</option>
               <option value="100" selected>100 logs</option>
               <option value="250">250 logs</option>
@@ -119,8 +119,8 @@ const SuperAdmin = (() => {
               style="display:flex;align-items:center;gap:.4rem;
                      background:linear-gradient(135deg,#6366f1,#8b5cf6);
                      color:#fff;font-weight:600;font-size:.8rem;
-                     padding:.45rem 1rem;border-radius:.5rem;border:none;cursor:pointer;
-                     transition:opacity .15s">
+                     padding:.65rem 1rem;border-radius:.5rem;border:none;cursor:pointer;
+                     min-height:2.75rem;transition:opacity .15s">
               <svg xmlns="http://www.w3.org/2000/svg"
                    style="width:.9rem;height:.9rem;flex-shrink:0"
                    fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
@@ -133,10 +133,9 @@ const SuperAdmin = (() => {
           </div>
         </div>
 
-        <!-- Tarjetas de estadísticas -->
+        <!-- Tarjetas de estadísticas — 2 cols en móvil, 3 en sm, 5 en lg -->
         <div id="sa-stats"
-          style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
-                 gap:1rem;margin-bottom:1.5rem">
+          class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
           ${statCardLoading()}
         </div>
 
@@ -219,10 +218,9 @@ const SuperAdmin = (() => {
           </p>
         </div>
 
-        <!-- Stats rápidas -->
+        <!-- Stats rápidas — 2 cols en móvil, 3 en sm, 5 en lg -->
         <div id="sa-user-stats"
-             style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
-                    gap:1rem;margin-bottom:1.5rem">
+             class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
           ${statCardLoading()}
         </div>
 
@@ -239,8 +237,8 @@ const SuperAdmin = (() => {
               style="display:flex;align-items:center;gap:.375rem;
                      background:#0f172a;border:1px solid #334155;
                      color:#94a3b8;font-size:.75rem;font-weight:600;
-                     padding:.35rem .75rem;border-radius:.4rem;cursor:pointer;
-                     transition:background .15s">
+                     padding:.65rem .875rem;border-radius:.4rem;cursor:pointer;
+                     min-height:2.75rem;transition:background .15s">
               <svg xmlns="http://www.w3.org/2000/svg"
                    style="width:.8rem;height:.8rem;flex-shrink:0"
                    fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
