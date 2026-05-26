@@ -99,9 +99,9 @@ const Content = (() => {
   // ─── Helpers de plan ──────────────────────────────────────────────────────
 
   const PLAN_META = {
-    basic: { label: 'Basic',   bg: '#1e293b', border: '#334155', color: '#94a3b8', limit: 35  },
-    pro:   { label: 'Pro ✨',  bg: '#1e1b4b', border: '#4338ca', color: '#a5b4fc', limit: 100 },
-    full:  { label: 'Full 🚀', bg: '#2e1065', border: '#7c3aed', color: '#c4b5fd', limit: 200 },
+    basic: { label: 'Basic',   bg: '#1e293b', border: '#334155', color: '#94a3b8', limit: 100  },
+    pro:   { label: 'Pro ✨',  bg: '#1e1b4b', border: '#4338ca', color: '#a5b4fc', limit: 500  },
+    full:  { label: 'Full 🚀', bg: '#2e1065', border: '#7c3aed', color: '#c4b5fd', limit: 1000 },
   };
 
   function buildUsageBar(usage) {

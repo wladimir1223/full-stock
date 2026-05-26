@@ -15,7 +15,7 @@ const mongoose                  = require('mongoose');
 const { logActivity, ACTIONS }  = require('../models/ActivityLog');
 
 // Límite de productos por plan  ← único lugar donde se define
-const PLAN_LIMITS = { basic: 35, pro: 100, full: 200 };
+const PLAN_LIMITS = { basic: 100, pro: 500, full: 1000 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 

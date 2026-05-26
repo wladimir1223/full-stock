@@ -287,11 +287,11 @@ router.put('/admin/settings', requireAuth, async (req, res) => {
 router.get('/admin/plan-usage', requireAuth, async (req, res) => {
   try {
     const User = require('../models/User');
-    const PLAN_LIMITS = { basic: 35, pro: 100, full: 200 };
+    const PLAN_LIMITS = { basic: 100, pro: 500, full: 1000 };
 
     const user    = await User.findById(req.tenant.id).select('plan').lean();
     const plan    = (user && user.plan) || 'basic';
-    const limit   = PLAN_LIMITS[plan] ?? 35;
+    const limit   = PLAN_LIMITS[plan] ?? 100;
     const current = await Item.countDocuments({ tenantId: req.tenant.id });
 
     res.json({ success: true, data: { plan, limit, current } });
