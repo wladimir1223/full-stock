@@ -165,15 +165,36 @@ const Content = (() => {
       const atLimit   = usage.current >= usage.limit;
 
       main.innerHTML = `
-        <div class="flex items-center justify-between mb-4">
-          <div>
-            <h2 class="text-xl font-bold text-white">${activeSchema.name}</h2>
-            <p class="text-xs text-slate-400">
-              API pública: <code class="text-emerald-400">/api/v1/${Auth.getTenantSlug()}/collections/${activeSlug}</code>
-            </p>
+        <!-- ── Cabecera de la colección ───────────────────────────────── -->
+        <div class="flex items-center justify-between mb-4 gap-3 flex-wrap">
+
+          <!-- Título + botón editar colección -->
+          <div style="display:flex;align-items:center;gap:.625rem;min-width:0">
+            <h2 class="text-xl font-bold text-white" style="margin:0;line-height:1.2">
+              ${escHtml(activeSchema.name)}
+            </h2>
+
+            <!-- Botón editar colección (lápiz) — CSP-safe, sin inline handlers -->
+            <button id="edit-collection-btn"
+              title="Editar nombre de esta categoría"
+              style="display:flex;align-items:center;justify-content:center;
+                     width:1.875rem;height:1.875rem;border-radius:.4rem;flex-shrink:0;
+                     background:transparent;border:1px solid #334155;
+                     color:#475569;cursor:pointer;transition:all .15s">
+              <svg xmlns="http://www.w3.org/2000/svg"
+                   style="width:.9rem;height:.9rem;pointer-events:none"
+                   fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5
+                     m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+              </svg>
+            </button>
           </div>
-          <button id="new-item-btn" class="btn-primary" ${atLimit ? 'disabled title="Límite de plan alcanzado"' : ''}>
-            + Añadir ${activeSchema.name.replace(/s$/, '')}
+
+          <!-- Botón añadir producto -->
+          <button id="new-item-btn" class="btn-primary"
+            ${atLimit ? 'disabled title="Límite de plan alcanzado"' : ''}>
+            + Añadir ${escHtml(activeSchema.name.replace(/s$/i, ''))}
           </button>
         </div>
 
@@ -200,7 +221,25 @@ const Content = (() => {
         </div>
       `;
 
-      // Listeners de fila
+      // ── Botón editar colección ────────────────────────────────────────────
+      const editColBtn = main.querySelector('#edit-collection-btn');
+      if (editColBtn) {
+        editColBtn.addEventListener('mouseover', () => {
+          editColBtn.style.borderColor = '#6366f1';
+          editColBtn.style.color       = '#a5b4fc';
+          editColBtn.style.background  = 'rgba(99,102,241,.1)';
+        });
+        editColBtn.addEventListener('mouseout', () => {
+          editColBtn.style.borderColor = '#334155';
+          editColBtn.style.color       = '#475569';
+          editColBtn.style.background  = 'transparent';
+        });
+        editColBtn.addEventListener('click', () => {
+          openEditCollectionModal(activeSchema, () => renderTable(container, opts));
+        });
+      }
+
+      // ── Listeners de fila ────────────────────────────────────────────────
       if (!atLimit) {
         main.querySelector('#new-item-btn').addEventListener('click', () => openForm(main));
       }
@@ -621,6 +660,173 @@ const Content = (() => {
     } catch {
       App.showToast('Error al eliminar.', 'error');
     }
+  }
+
+  // ─── Modal: Editar Colección ──────────────────────────────────────────────
+  //
+  // Abre un modal centralizado (montado en document.body, sobre todo el layout)
+  // que permite renombrar la colección activa.
+  // CSP-safe: cero inline handlers — toda la lógica vía addEventListener.
+  //
+  function openEditCollectionModal(schema, onSaved) {
+    // Eliminar instancia anterior si quedó abierta
+    document.getElementById('edit-col-modal')?.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id    = 'edit-col-modal';
+    overlay.style.cssText =
+      'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;' +
+      'justify-content:center;padding:1rem;background:rgba(0,0,0,.7);' +
+      'backdrop-filter:blur(4px)';
+
+    overlay.innerHTML = `
+      <div style="position:relative;width:100%;max-width:440px;
+                  background:#1e293b;border:1px solid #334155;
+                  border-radius:.875rem;padding:1.75rem;z-index:1;
+                  animation:fadeIn .2s ease-out">
+
+        <!-- Cabecera del modal -->
+        <div style="display:flex;align-items:center;gap:.875rem;margin-bottom:1.5rem">
+          <div style="width:2.375rem;height:2.375rem;border-radius:.5rem;flex-shrink:0;
+                      background:linear-gradient(135deg,#6366f1,#8b5cf6);
+                      display:flex;align-items:center;justify-content:center;
+                      box-shadow:0 6px 16px rgba(99,102,241,.3)">
+            <svg xmlns="http://www.w3.org/2000/svg"
+                 style="width:1.1rem;height:1.1rem"
+                 fill="none" viewBox="0 0 24 24" stroke="white" stroke-width="1.75">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5
+                   m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+            </svg>
+          </div>
+          <div>
+            <h3 style="color:#f1f5f9;font-size:1rem;font-weight:700;margin:0 0 .15rem;
+                       line-height:1.2">Editar categoría</h3>
+            <p style="color:#64748b;font-size:.75rem;margin:0">
+              Actualiza el nombre de esta colección.
+            </p>
+          </div>
+        </div>
+
+        <!-- Campo nombre -->
+        <div style="margin-bottom:1rem">
+          <label style="display:block;font-size:.7rem;font-weight:600;color:#94a3b8;
+                         text-transform:uppercase;letter-spacing:.06em;margin-bottom:.375rem">
+            Nombre de la categoría
+          </label>
+          <input id="ecm-name" type="text"
+            placeholder="Ej: Productos, Menú, Servicios…"
+            style="width:100%;box-sizing:border-box;background:#0f172a;
+                   border:1px solid #334155;border-radius:.5rem;color:#f1f5f9;
+                   padding:.6rem .75rem;font-size:.875rem;outline:none;
+                   transition:border-color .15s"/>
+        </div>
+
+        <!-- Nota informativa -->
+        <div style="background:#0f172a;border:1px solid #1e293b;border-radius:.5rem;
+                    padding:.75rem 1rem;margin-bottom:1.25rem;
+                    display:flex;gap:.625rem;align-items:flex-start">
+          <svg xmlns="http://www.w3.org/2000/svg"
+               style="width:.875rem;height:.875rem;color:#6366f1;flex-shrink:0;margin-top:.1rem"
+               fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          <p style="color:#64748b;font-size:.75rem;margin:0;line-height:1.5">
+            Para añadir o eliminar campos de esta categoría, ve a
+            <strong style="color:#94a3b8">Mis Categorías</strong>.
+          </p>
+        </div>
+
+        <!-- Mensaje de error -->
+        <div id="ecm-error"
+             style="display:none;background:#450a0a;border:1px solid #991b1b;
+                    border-radius:.5rem;color:#f87171;font-size:.8rem;
+                    padding:.65rem 1rem;margin-bottom:1rem"></div>
+
+        <!-- Botones de acción -->
+        <div style="display:flex;gap:.75rem">
+          <button id="ecm-save"
+            style="flex:1;background:linear-gradient(135deg,#6366f1,#8b5cf6);
+                   color:#fff;font-weight:600;font-size:.875rem;
+                   padding:.65rem;border-radius:.5rem;border:none;
+                   cursor:pointer;transition:opacity .15s">
+            Guardar cambios
+          </button>
+          <button id="ecm-cancel"
+            style="padding:.65rem 1.25rem;background:#0f172a;color:#94a3b8;
+                   font-weight:500;font-size:.875rem;border-radius:.5rem;
+                   border:1px solid #334155;cursor:pointer;transition:background .15s">
+            Cancelar
+          </button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    const nameInput = overlay.querySelector('#ecm-name');
+    const saveBtn   = overlay.querySelector('#ecm-save');
+    const cancelBtn = overlay.querySelector('#ecm-cancel');
+    const errDiv    = overlay.querySelector('#ecm-error');
+
+    // Pre-rellenar con el nombre actual
+    nameInput.value = schema.name || '';
+
+    function cerrar() { overlay.remove(); }
+
+    // Focus ring CSP-safe
+    nameInput.addEventListener('focus', () => { nameInput.style.borderColor = '#6366f1'; });
+    nameInput.addEventListener('blur',  () => { nameInput.style.borderColor = '#334155'; });
+
+    // Hover botón cancelar
+    cancelBtn.addEventListener('mouseover', () => { cancelBtn.style.background = '#1e293b'; });
+    cancelBtn.addEventListener('mouseout',  () => { cancelBtn.style.background = '#0f172a'; });
+
+    // Cerrar con clic en backdrop o tecla Escape
+    overlay.addEventListener('click', e => { if (e.target === overlay) cerrar(); });
+    nameInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter')  saveBtn.click();
+      if (e.key === 'Escape') cerrar();
+    });
+    cancelBtn.addEventListener('click', cerrar);
+
+    // Guardar
+    saveBtn.addEventListener('click', async () => {
+      const newName = nameInput.value.trim();
+      if (!newName) {
+        errDiv.textContent   = 'El nombre no puede estar vacío.';
+        errDiv.style.display = '';
+        nameInput.focus();
+        return;
+      }
+
+      errDiv.style.display    = 'none';
+      saveBtn.disabled        = true;
+      saveBtn.style.opacity   = '.6';
+      saveBtn.textContent     = 'Guardando…';
+
+      try {
+        await API.collections.update(activeSlug, { name: newName });
+
+        // Actualizar nombre en memoria para que el render inmediato lo use
+        schema.name    = newName;
+        activeSchema   = schema;
+
+        cerrar();
+        if (window.App) App.showToast(`Categoría renombrada a "${newName}".`, 'success');
+        if (onSaved) await onSaved();
+      } catch (err) {
+        errDiv.textContent   = (err && err.message) ? err.message : 'Error al guardar.';
+        errDiv.style.display = '';
+        saveBtn.disabled     = false;
+        saveBtn.style.opacity = '1';
+        saveBtn.textContent  = 'Guardar cambios';
+      }
+    });
+
+    // Foco automático en el input
+    setTimeout(() => { nameInput.focus(); nameInput.select(); }, 60);
   }
 
   // ─── Detección de campos imagen ───────────────────────────────────────────
