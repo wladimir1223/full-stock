@@ -416,9 +416,11 @@
 'use strict';
 
 // ─── Config ───────────────────────────────────────────────────────────────────
-// Slug del tenant extraído del path limpio: /tienda/SLUG
-// Nunca aparece como query-param → la estructura interna queda oculta al cliente.
-const TENANT = window.location.pathname.split('/').filter(Boolean).pop() || '';
+// Slug del tenant — prioridad: clean URL /tienda/SLUG, fallback: ?tenant=SLUG
+// El fallback mantiene compatibilidad con links guardados antes de la migración.
+const _pathParts = window.location.pathname.split('/').filter(Boolean);
+const _pathSlug  = _pathParts[0] === 'tienda' ? (_pathParts[1] || '') : '';
+const TENANT     = _pathSlug || new URLSearchParams(window.location.search).get('tenant') || '';
 const CATALOG_URL  = `/api/v1/store/${TENANT}/products`;
 const CHECKOUT_URL = `/api/v1/store/${TENANT}/checkout`;
 
