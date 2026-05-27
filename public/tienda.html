@@ -7,7 +7,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
   <meta http-equiv="Pragma" content="no-cache"/>
   <meta http-equiv="Expires" content="0"/>
-  <!-- v=20260526-3 — fingerprint para invalidar caché del navegador -->
+  <!-- v=20260527-4 — fingerprint para invalidar caché del navegador -->
   <title id="page-title">Tienda — Full Stock</title>
 
   <!-- Tailwind CSS via CDN + config externa (sin 'unsafe-inline' en CSP) -->
@@ -100,6 +100,14 @@
       transition: opacity .3s ease;
     }
     .drawer-overlay.is-open { opacity: 1; pointer-events: auto; }
+
+    /* ── Buscador de productos ──────────────────────────────────── */
+    #search-bar:focus {
+      border-color: #6366f1;
+      box-shadow: 0 0 0 3px rgba(99,102,241,.18);
+    }
+    /* Ocultar botón nativo "×" del input type=search en Chrome/Safari */
+    #search-bar::-webkit-search-cancel-button { -webkit-appearance: none; }
   </style>
 </head>
 
@@ -175,6 +183,34 @@
 
 <!-- ══════════════════════════════ CATÁLOGO ══ -->
 <main class="max-w-6xl mx-auto px-4 sm:px-6 py-10" id="main">
+  <!-- ══ Barra de filtros: buscador + píldoras de categoría ══
+       Permanece oculta hasta que loadCatalog() confirme colecciones disponibles.
+       La clase .hidden se retira vía show('filter-bar') en tienda.js. -->
+  <div id="filter-bar" class="hidden mb-8">
+
+    <!-- Buscador de texto -->
+    <div class="relative mb-3">
+      <svg xmlns="http://www.w3.org/2000/svg"
+           class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4
+                  text-slate-600 pointer-events-none"
+           fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round"
+          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0"/>
+      </svg>
+      <!-- id="search-bar" — evento 'input' registrado en tienda.js vía addEventListener -->
+      <input id="search-bar" type="search" placeholder="Buscar productos…"
+             class="w-full bg-slate-900 border border-slate-800 text-slate-100
+                    rounded-xl pl-10 pr-4 py-3 text-sm outline-none transition-colors
+                    placeholder:text-slate-600">
+    </div>
+
+    <!-- Píldoras de categoría — inyectadas por renderCategoryPills() en tienda.js.
+         data-action="filter-cat" capturado por el delegated listener (caso 12). -->
+    <div id="categories-pills-container"
+         class="flex gap-2 overflow-x-auto py-1 whitespace-nowrap scroll-smooth no-sb">
+    </div>
+  </div>
+
   <div id="skeleton-grid"
        class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6"></div>
   <div id="catalog"></div>
@@ -432,7 +468,7 @@
 <!-- ══════════════════════════════ SCRIPT ══ -->
 <!-- JS externo en /js/tienda.js — sin inline handlers, CSP-compliant.
      Todos los eventos (drawer, modal, checkout) se registran vía addEventListener. -->
-<script src="/js/tienda.js?v=3"></script>
+<script src="/js/tienda.js?v=4"></script>
 
 </body>
 </html>

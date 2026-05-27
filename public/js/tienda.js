@@ -27,6 +27,11 @@ let telefonoTiendaActual = '';   // número sin '+', cargado desde la API
 let pendingOrder         = null; // { collectionSlug, productId, name, price, stock, cardEl }
 const stockMap           = {};   // { [productId]: currentStock }
 
+// ── Filtros de catálogo ──────────────────────────────────────────────────────
+let activeCategory    = null;  // null = "Todas"; string = slug de la categoría activa
+let searchText        = '';    // texto actual en la barra de búsqueda
+let loadedCollections = [];    // snapshot de las colecciones actualmente renderizadas
+
 // ─── Detección de campos ──────────────────────────────────────────────────────
 const ALIASES = {
   name:  ['nombre','name','titulo','title','producto','item'],
@@ -117,6 +122,10 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       return;
     }
+
+    // 12. Píldora de categoría — activa/desactiva filtro y reaplica búsqueda
+    const pillBtn = e.target.closest('[data-action="filter-cat"]');
+    if (pillBtn) { setActiveCategory(pillBtn.dataset.slug); return; }
   });
 
   // Input directo en el campo de cantidad
@@ -133,11 +142,20 @@ document.addEventListener('DOMContentLoaded', () => {
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape') { cerrarModal(); cerrarDrawer(); }
   });
+
+  // Buscador de productos — filtra tarjetas en tiempo real (CSP-safe: sin inline)
+  const searchBarEl = document.getElementById('search-bar');
+  if (searchBarEl) {
+    searchBarEl.addEventListener('input', function () {
+      searchText = this.value;
+      filterCatalog();
+    });
+  }
 });
 
 // ─── Fetch catálogo ───────────────────────────────────────────────────────────
 async function loadCatalog() {
-  hide('state-error'); hide('state-empty'); hide('catalog');
+  hide('state-error'); hide('state-empty'); hide('catalog'); hide('filter-bar');
 
   // Sin slug → mostrar error sin hacer ninguna petición
   if (!TENANT) {
@@ -179,6 +197,15 @@ async function loadCatalog() {
     renderCatalog(collections);
     show('catalog');
 
+    // ── Filtros: reiniciar estado y renderizar píldoras ──────────────────────
+    loadedCollections = collections;
+    activeCategory    = null;
+    searchText        = '';
+    const sb = document.getElementById('search-bar');
+    if (sb) sb.value = '';
+    renderCategoryPills(collections);
+    show('filter-bar');
+
   } catch (err) {
     hide('skeleton-grid');
     document.getElementById('error-msg').textContent = err.message || 'Error de red.';
@@ -204,6 +231,115 @@ function buildDrawerLinks(collections) {
       ${esc(col.name)}
     </button>
   `).join('');
+}
+
+// ─── Píldoras de categoría ────────────────────────────────────────────────────
+
+/**
+ * Renderiza la fila de píldoras: "Todas" + una por colección.
+ * Los nombres se insertan vía textContent (XSS-safe, sin interpreta HTML).
+ * Los atributos data-* van por DOM API, no por innerHTML — también seguros.
+ */
+function renderCategoryPills(collections) {
+  const container = document.getElementById('categories-pills-container');
+  if (!container) return;
+  container.innerHTML = '';
+
+  // Píldora "Todas" — siempre activa al inicio (activeCategory === null)
+  container.appendChild(buildPill('', 'Todas', true));
+
+  // Una píldora por colección
+  collections.forEach(col => container.appendChild(buildPill(col.slug, col.name, false)));
+}
+
+/**
+ * Construye un elemento <button> de tipo píldora.
+ * @param {string}  slug     — slug de la colección; '' para "Todas"
+ * @param {string}  name     — nombre visible
+ * @param {boolean} isActive — estado visual inicial
+ */
+function buildPill(slug, name, isActive) {
+  const btn          = document.createElement('button');
+  btn.type           = 'button';
+  btn.dataset.action = 'filter-cat';
+  btn.dataset.slug   = slug;
+  btn.textContent    = name;   // XSS-safe: no interpreta HTML
+  btn.className      = 'flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition-colors';
+  applyPillStyle(btn, isActive);
+  return btn;
+}
+
+/** Aplica el estilo visual activo/inactivo a una píldora. */
+function applyPillStyle(btn, active) {
+  if (active) {
+    btn.style.background = '#4f46e5';   // indigo-700
+    btn.style.color      = '#ffffff';
+    btn.style.border     = '1px solid #6366f1';
+  } else {
+    btn.style.background = '#1e293b';   // slate-800
+    btn.style.color      = '#94a3b8';   // slate-400
+    btn.style.border     = '1px solid #334155';
+  }
+}
+
+/**
+ * Cambia la categoría activa, actualiza el estado visual de todas las píldoras
+ * y vuelve a ejecutar filterCatalog() para respetar el crossfilter con la búsqueda.
+ * @param {string} slug — '' → "Todas" (null interno); 'ropa' → filtra por "ropa"
+ */
+function setActiveCategory(slug) {
+  activeCategory = slug || null;   // '' → null (Todas), 'ropa' → 'ropa'
+
+  document.querySelectorAll('[data-action="filter-cat"]').forEach(btn => {
+    applyPillStyle(btn, (btn.dataset.slug || null) === activeCategory);
+  });
+
+  filterCatalog();
+}
+
+// ─── Filtrado combinado: categoría activa + texto de búsqueda ─────────────────
+
+/**
+ * Recorre cada <section> del catálogo aplicando dos filtros en cascada:
+ *   1. Categoría activa  — oculta secciones que no coinciden
+ *   2. Texto de búsqueda — oculta tarjetas individuales que no coinciden
+ *
+ * Si ambos filtros están vacíos (Todas + sin texto) restaura la vista completa.
+ */
+function filterCatalog() {
+  const text = searchText.toLowerCase().trim();
+
+  document.querySelectorAll('#catalog section[id^="col-"]').forEach(section => {
+    const slug = section.id.slice(4);   // "col-ropa" → "ropa"
+
+    // ── Filtro de categoría ──────────────────────────────────────────────────
+    if (activeCategory && activeCategory !== slug) {
+      section.style.display = 'none';
+      return;
+    }
+    section.style.display = '';
+
+    // ── Sin texto: mostrar todas las tarjetas de la sección ─────────────────
+    if (!text) {
+      section.querySelectorAll('article.product-card').forEach(c => { c.style.display = ''; });
+      return;
+    }
+
+    // ── Filtro de texto: nombre + descripción ────────────────────────────────
+    let anyVisible = false;
+    section.querySelectorAll('article.product-card').forEach(card => {
+      const nameEl  = card.querySelector('h3');
+      const descEl  = card.querySelector('p.text-slate-500');
+      const nameStr = nameEl ? nameEl.textContent.toLowerCase() : '';
+      const descStr = descEl ? descEl.textContent.toLowerCase() : '';
+      const visible = nameStr.includes(text) || descStr.includes(text);
+      card.style.display = visible ? '' : 'none';
+      if (visible) anyVisible = true;
+    });
+
+    // Ocultar sección entera si ninguna tarjeta coincide
+    section.style.display = anyVisible ? '' : 'none';
+  });
 }
 
 /** Abre el panel lateral añadiendo la clase .is-open al drawer y al overlay. */
