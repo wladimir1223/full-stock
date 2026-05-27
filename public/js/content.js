@@ -61,7 +61,7 @@ const Content = (() => {
           'hover:bg-slate-700 hover:text-white transition nav-item';
         btn.dataset.slug = col.slug;
         btn.innerHTML = `
-          <span class="block font-medium">${col.name}</span>
+          <span class="block font-medium">${escHtml(col.name)}</span>
           <span class="block text-xs text-slate-500">${col.fields.length} campo${col.fields.length !== 1 ? 's' : ''}</span>
         `;
         btn.addEventListener('click', () => selectCollection(container, col));
@@ -206,7 +206,7 @@ const Content = (() => {
           <table class="w-full text-sm">
             <thead>
               <tr class="bg-slate-800 text-slate-400 text-left">
-                ${activeSchema.fields.map(f => `<th class="px-4 py-3 font-medium">${f.label}</th>`).join('')}
+                ${activeSchema.fields.map(f => `<th class="px-4 py-3 font-medium">${escHtml(f.label)}</th>`).join('')}
                 <th class="px-4 py-3 font-medium text-right">Acciones</th>
               </tr>
             </thead>
@@ -844,11 +844,12 @@ const Content = (() => {
   // ─── Utilidades ───────────────────────────────────────────────────────────
 
   function escHtml(str) {
-    return str
+    return String(str == null ? '' : str)
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');   // CVE-4: escape comilla simple
   }
 
   return { render };

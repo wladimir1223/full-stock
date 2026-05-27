@@ -12,6 +12,15 @@ const { logActivity, ACTIONS }  = require('../models/ActivityLog');
 
 const VALID_TYPES = ['short_text', 'long_text', 'number', 'image_url'];
 
+// ─── CVE-3: Sanitización backend (defensa en profundidad) ────────────────────
+/**
+ * Elimina etiquetas HTML completas del texto antes de persistirlo en MongoDB.
+ * Ejemplo: '<script>alert(1)</script>Café' → 'Café'.
+ */
+function stripHtml(str) {
+  return String(str).replace(/<[^>]*>/g, '').trim();
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function toSlug(name) {
@@ -96,7 +105,7 @@ async function createCollection(req, res) {
       key:   f.name.toLowerCase().trim()
                .normalize('NFD').replace(/[̀-ͯ]/g, '')
                .replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, ''),
-      label: f.name.trim(),
+      label: stripHtml(f.name),   // CVE-3: strip de etiquetas HTML en etiquetas de campo
       type:  f.type,
     }));
 
@@ -110,7 +119,7 @@ async function createCollection(req, res) {
 
     const col = await Collection.create({
       tenantId: req.tenant.id,
-      name:     name.trim(),
+      name:     stripHtml(name),   // CVE-3: strip de etiquetas HTML
       slug,
       fields:   normalizedFields,
     });

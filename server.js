@@ -34,20 +34,20 @@ const PORT = process.env.PORT || 3000;
 app.set('trust proxy', 1);
 
 // ─── Helmet — cabeceras HTTP de seguridad ─────────────────────────────────────
-// CSP configurado para permitir Tailwind CDN (usado por el frontend SPA)
-// e imágenes de Cloudinary.
+// CSP configurado para Defensa en Profundidad (CVE-1 parcheado):
 //
-// scriptSrc 'unsafe-inline'  → permite el bloque <script> inline en index.html
-//                               y tienda.html (sin servidor SSR no hay nonces).
-// scriptSrcAttr 'none'       → bloquea onclick="...", onerror="..." etc. en HTML.
-//                               Todos los handlers se registran vía addEventListener.
-// imgSrc https:              → Cloudinary puede cambiar de subdominio; permitimos
-//                               cualquier HTTPS en lugar de anclar el dominio.
+// scriptSrc            → solo 'self' + CDNs explícitos (Tailwind y Chart.js).
+//                        'unsafe-inline' ELIMINADO: el config de Tailwind se
+//                        sirve como archivo externo (/js/tailwind-config.js).
+// scriptSrcAttr 'none' → bloquea onclick="...", onerror="..." etc. en HTML.
+//                        Todos los handlers se registran vía addEventListener.
+// imgSrc https:        → Cloudinary puede cambiar de subdominio; permitimos
+//                        cualquier HTTPS en lugar de anclar el dominio.
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc:     ["'self'"],
-      scriptSrc:      ["'self'", "'unsafe-inline'", 'https://cdn.tailwindcss.com'],
+      scriptSrc:      ["'self'", 'https://cdn.tailwindcss.com', 'https://cdn.jsdelivr.net'],
       scriptSrcAttr:  ["'none'"],          // sin onclick / onerror / onfocus inline
       styleSrc:       ["'self'", "'unsafe-inline'"],
       imgSrc:         ["'self'", 'data:', 'blob:', 'https:'],

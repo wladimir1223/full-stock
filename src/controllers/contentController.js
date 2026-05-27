@@ -17,6 +17,17 @@ const { logActivity, ACTIONS }  = require('../models/ActivityLog');
 // Límite de productos por plan  ← único lugar donde se define
 const PLAN_LIMITS = { basic: 100, pro: 500, full: 1000 };
 
+// ─── CVE-3: Sanitización backend (defensa en profundidad) ────────────────────
+/**
+ * Elimina etiquetas HTML completas del texto antes de persistirlo en MongoDB.
+ * Ejemplo: '<img src="x" onerror="alert(1)">' → '' (tag eliminado).
+ * Los caracteres sueltos < > " ' sin formar un tag se preservan.
+ * El frontend aplica escHtml() adicionalmente como segunda capa de defensa.
+ */
+function stripHtml(str) {
+  return String(str).replace(/<[^>]*>/g, '').trim();
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 /**
@@ -47,7 +58,7 @@ function validateAndSanitize(fields, body) {
         if (raw === undefined || raw === null || String(raw).trim() === '') {
           errors.push(`El campo "${field.label}" es obligatorio.`);
         } else {
-          data[field.key] = String(raw).trim();
+          data[field.key] = stripHtml(String(raw));   // CVE-3: strip de etiquetas HTML
         }
         break;
 

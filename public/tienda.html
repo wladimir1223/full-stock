@@ -10,13 +10,9 @@
   <!-- v=20260526-3 — fingerprint para invalidar caché del navegador -->
   <title id="page-title">Tienda — Full Stock</title>
 
+  <!-- Tailwind CSS via CDN + config externa (sin 'unsafe-inline' en CSP) -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: { extend: { colors: { slate: { 950: '#0a0f1e' } } } }
-    }
-  </script>
+  <script src="/js/tailwind-config.js?v=1"></script>
 
   <style>
     /* Card hover — subtler lift */
