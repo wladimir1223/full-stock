@@ -1,7 +1,11 @@
 /**
  * api.js — Capa de comunicación con Full Stock backend.
  *
- * Auth (localStorage):
+ * Auth (dual-storage — "Recuérdame en este equipo"):
+ *   Si remember=true  → localStorage  (persistencia entre sesiones)
+ *   Si remember=false → sessionStorage (solo la pestaña/sesión actual)
+ *
+ *   Claves almacenadas en el almacén elegido:
  *   fs_token       → JWT
  *   fs_expires     → expiración en ms (extraída del JWT)
  *   fs_email       → email del usuario
@@ -16,10 +20,25 @@
 // ─── Auth (gestión de sesión) ─────────────────────────────────────────────────
 
 const Auth = {
-  // Token
-  getToken:  function() { return localStorage.getItem('fs_token'); },
-  setToken:  function(t) {
-    localStorage.setItem('fs_token', t);
+
+  // ── Helper de lectura dual ─────────────────────────────────────────────────
+  // Lee sessionStorage primero; si está vacío cae en localStorage.
+  // Esto garantiza compatibilidad con sesiones pre-existentes guardadas en localStorage.
+  _get: function(key) {
+    return sessionStorage.getItem(key) || localStorage.getItem(key);
+  },
+
+  // ── Token ──────────────────────────────────────────────────────────────────
+  getToken: function() { return this._get('fs_token'); },
+
+  /**
+   * Guarda el token (y los campos del payload) en el almacén correcto.
+   * @param {string}  t        JWT recibido del backend
+   * @param {boolean} remember true → localStorage  |  false → sessionStorage
+   */
+  setToken: function(t, remember) {
+    var store = (remember === true) ? localStorage : sessionStorage;
+    store.setItem('fs_token', t);
     // Decodificar payload del JWT para extraer expiración y datos del tenant
     try {
       const parts = t.split('.');
@@ -27,33 +46,36 @@ const Auth = {
         let b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
         while (b64.length % 4) b64 += '=';
         const payload = JSON.parse(atob(b64));
-        if (payload.exp)        localStorage.setItem('fs_expires', payload.exp * 1000);
-        if (payload.email)      localStorage.setItem('fs_email',   payload.email);
-        if (payload.name)       localStorage.setItem('fs_name',    payload.name);
-        if (payload.tenantSlug) localStorage.setItem('fs_slug',    payload.tenantSlug);
-        if (payload.role)       localStorage.setItem('fs_role',    payload.role);
+        if (payload.exp)        store.setItem('fs_expires', payload.exp * 1000);
+        if (payload.email)      store.setItem('fs_email',   payload.email);
+        if (payload.name)       store.setItem('fs_name',    payload.name);
+        if (payload.tenantSlug) store.setItem('fs_slug',    payload.tenantSlug);
+        if (payload.role)       store.setItem('fs_role',    payload.role);
       }
     } catch (_) {}
   },
 
-  // Datos del tenant (leídos desde el JWT al hacer setToken)
-  getEmail:       function() { return localStorage.getItem('fs_email')   || ''; },
-  getName:        function() { return localStorage.getItem('fs_name')    || ''; },
-  getTenantSlug:  function() { return localStorage.getItem('fs_slug')    || ''; },
-  getRole:        function() { return localStorage.getItem('fs_role')    || 'tenant'; },
+  // ── Datos del tenant (leídos desde el JWT al hacer setToken) ──────────────
+  getEmail:      function() { return this._get('fs_email')   || ''; },
+  getName:       function() { return this._get('fs_name')    || ''; },
+  getTenantSlug: function() { return this._get('fs_slug')    || ''; },
+  getRole:       function() { return this._get('fs_role')    || 'tenant'; },
 
   // Compatibilidad: getUser devuelve el nombre del negocio
   getUser: function() { return this.getName(); },
 
-  // Sesión
-  isExpired:  function() {
-    var exp = localStorage.getItem('fs_expires');
+  // ── Sesión ─────────────────────────────────────────────────────────────────
+  isExpired: function() {
+    var exp = this._get('fs_expires');
     return exp ? Date.now() > Number(exp) : true;
   },
   isLoggedIn: function() { return !!this.getToken() && !this.isExpired(); },
+
+  /** Limpia AMBOS almacenes para evitar sesiones fantasma tras un logout. */
   clear: function() {
     ['fs_token', 'fs_expires', 'fs_email', 'fs_name', 'fs_slug', 'fs_role'].forEach(function(k) {
       localStorage.removeItem(k);
+      sessionStorage.removeItem(k);
     });
   },
 };
@@ -97,7 +119,7 @@ var API = {
     login: function(email, password) {
       return request('POST', '/auth/login', { email: email, password: password });
     },
-    // Logout es solo client-side (JWT stateless): limpiar localStorage
+    // Logout es solo client-side (JWT stateless): limpiar ambos almacenes
     logout: function() {
       Auth.clear();
       return Promise.resolve({ success: true });

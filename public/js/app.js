@@ -176,6 +176,13 @@ const App = (() => {
                   </div>
                 </div>
               </div>
+              <!-- Recuérdame en este equipo -->
+              <label id="remember-me-label"
+                style="display:flex;align-items:center;gap:.5rem;margin-top:.875rem;cursor:pointer">
+                <input id="remember-me" type="checkbox"
+                  style="width:1rem;height:1rem;accent-color:#6366f1;cursor:pointer;flex-shrink:0"/>
+                <span style="font-size:.8rem;color:#94a3b8;user-select:none">Recuérdame en este equipo</span>
+              </label>
               <div id="li-error"
                    style="display:none;background:#450a0a;border:1px solid #991b1b;border-radius:.5rem;
                           color:#f87171;font-size:.8rem;padding:.65rem 1rem;margin-top:.875rem"></div>
@@ -351,11 +358,12 @@ const App = (() => {
     });
 
     // ── Login ─────────────────────────────────────────────────────────────────
-    const liEmail  = wrap.querySelector('#li-email');
-    const liPass   = wrap.querySelector('#li-pass');
-    const liBtn    = wrap.querySelector('#li-btn');
-    const liError  = wrap.querySelector('#li-error');
-    const liToggle = wrap.querySelector('#li-toggle');
+    const liEmail    = wrap.querySelector('#li-email');
+    const liPass     = wrap.querySelector('#li-pass');
+    const liBtn      = wrap.querySelector('#li-btn');
+    const liError    = wrap.querySelector('#li-error');
+    const liToggle   = wrap.querySelector('#li-toggle');
+    const liRemember = wrap.querySelector('#remember-me');
 
     const SVG_EYE_OPEN =
       '<svg xmlns="http://www.w3.org/2000/svg" style="width:1rem;height:1rem;display:block;pointer-events:none" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">' +
@@ -392,8 +400,9 @@ const App = (() => {
       liBtn.disabled    = true;
       liBtn.textContent = 'Entrando…';
       try {
-        const res = await API.auth.login(email, pass);
-        Auth.setToken(res.token);
+        const res      = await API.auth.login(email, pass);
+        const remember = liRemember ? liRemember.checked : false;
+        Auth.setToken(res.token, remember);
         renderApp();
       } catch (err) {
         liError.textContent   = (err && err.message) ? err.message : 'Error al iniciar sesión.';
