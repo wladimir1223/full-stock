@@ -162,6 +162,12 @@ const Content = (() => {
       ]);
       activeSchema    = schemaRes.data;
       const data      = itemsRes.data;
+
+      // Actualizar índice de búsqueda global del navbar
+      if (window.App && typeof App.indexProducts === 'function') {
+        App.indexProducts(activeSlug, schemaRes.data.name, data);
+      }
+
       const usage     = (usageRes && usageRes.data) || { plan: 'basic', limit: 35, current: 0 };
       const atLimit   = usage.current >= usage.limit;
 

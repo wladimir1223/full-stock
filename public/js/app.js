@@ -12,6 +12,10 @@ const App = (() => {
   let PANELS = {};
   let currentPanel = null;
 
+  // ── Índice de búsqueda global ────────────────────────────────────────────────
+  // Poblado por indexCategories() / indexProducts() cuando cada módulo carga datos.
+  const _searchIdx = { cats: [], prods: [] };
+
   // ─── SVG icons para items de navegación (Heroicons outline) ──────────────────
   const NAV_ICONS = {
     catalog: `<svg xmlns="http://www.w3.org/2000/svg" class="w-[1.05rem] h-[1.05rem] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>`,
@@ -871,7 +875,58 @@ const App = (() => {
             </span>
           </div>
 
-          <div class="flex-1"></div>
+          <!-- ══ Búsqueda global (centro del navbar) ══
+               Visible desde sm (640 px). Oculto en pantallas muy pequeñas.
+               El dropdown usa position:absolute sobre el contenido — sin overflow:hidden en el header. -->
+          <div id="global-search-container"
+               class="hidden sm:flex flex-1 items-center justify-center px-3"
+               style="position:relative">
+
+            <!-- Wrapper con max-width: limita el ancho del input -->
+            <div style="position:relative;width:100%;max-width:28rem">
+
+              <!-- Ícono de lupa -->
+              <svg xmlns="http://www.w3.org/2000/svg"
+                   style="position:absolute;left:.65rem;top:50%;transform:translateY(-50%);
+                          width:.825rem;height:.825rem;color:#475569;pointer-events:none;flex-shrink:0"
+                   fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0"/>
+              </svg>
+
+              <!-- Input de búsqueda.
+                   Todos los eventos registrados en bindSearch() — sin inline handlers (CSP). -->
+              <input id="global-search-input"
+                     type="text"
+                     placeholder="Buscar productos o categorías…"
+                     autocomplete="off"
+                     style="width:100%;box-sizing:border-box;
+                            background:rgba(15,23,42,.8);border:1px solid #334155;
+                            border-radius:.5rem;color:#e2e8f0;
+                            padding:.42rem 2.1rem .42rem 2rem;
+                            font-size:.8rem;outline:none;
+                            transition:border-color .15s,box-shadow .15s"/>
+
+              <!-- Badge '/' — atajo de teclado visual -->
+              <kbd id="search-slash-badge"
+                   style="position:absolute;right:.5rem;top:50%;transform:translateY(-50%);
+                          background:#0f172a;border:1px solid #334155;border-radius:.25rem;
+                          font-size:.625rem;font-weight:700;color:#475569;
+                          padding:.1rem .38rem;font-family:monospace;
+                          pointer-events:none;line-height:1.6;
+                          transition:opacity .15s">/</kbd>
+
+              <!-- Dropdown de resultados predictivos.
+                   Mostrado/ocultado por runSearch() y bindSearch(). -->
+              <div id="global-search-results"
+                   class="hidden"
+                   style="position:absolute;top:calc(100% + .4rem);left:0;width:100%;
+                          background:#1e293b;border:1px solid #334155;border-radius:.625rem;
+                          box-shadow:0 24px 50px rgba(0,0,0,.55);
+                          z-index:9999;max-height:20rem;overflow-y:auto">
+              </div>
+            </div>
+          </div>
 
           <!-- Acciones derecha -->
           <div class="flex items-center gap-1.5">
@@ -1159,11 +1214,42 @@ const App = (() => {
     supportClose.addEventListener('mouseover', () => { supportClose.style.background = '#1e293b'; });
     supportClose.addEventListener('mouseout',  () => { supportClose.style.background = '#0f172a'; });
 
-    // Escape global: cierra drawer y modal de soporte
-    document.addEventListener('keydown', function appEsc(e) {
+    // ── Búsqueda global: delegated click en resultados del dropdown ─────────────
+    // data-action="search-goto-cat"  → navega a content con ese slug de colección
+    // data-action="search-goto-prod" → navega a content con el slug de la colección del producto
+    document.addEventListener('click', function searchResultClick(e) {
+      const catBtn  = e.target.closest('[data-action="search-goto-cat"]');
+      const prodBtn = e.target.closest('[data-action="search-goto-prod"]');
+      if (!catBtn && !prodBtn) return;
+      // Limpiar y cerrar search
+      const inp = document.getElementById('global-search-input');
+      const res = document.getElementById('global-search-results');
+      if (inp) inp.value = '';
+      if (res) res.classList.add('hidden');
+      // Navegar
+      if (catBtn)  App.navigateToContent(catBtn.dataset.slug);
+      if (prodBtn) App.navigateToContent(prodBtn.dataset.colslug);
+    });
+
+    bindSearch();
+
+    // Teclado global: Escape + atajo '/' para búsqueda
+    document.addEventListener('keydown', function appKeyHandler(e) {
       if (e.key === 'Escape') {
         closeNavDrawer();
         if (modalSupport && modalSupport.style.display === 'flex') cerrarSupport();
+        // Cerrar también la búsqueda si está abierta
+        const sr = document.getElementById('global-search-results');
+        const si = document.getElementById('global-search-input');
+        if (sr) sr.classList.add('hidden');
+        if (si && document.activeElement === si) si.blur();
+      }
+      // '/' fuera de cualquier campo editable → foco en búsqueda global
+      if (e.key === '/' &&
+          !['INPUT', 'TEXTAREA', 'SELECT'].includes(
+            ((document.activeElement || {}).tagName || '').toUpperCase())) {
+        const inp = document.getElementById('global-search-input');
+        if (inp) { e.preventDefault(); inp.focus(); inp.select(); }
       }
     });
   }
@@ -1252,6 +1338,191 @@ const App = (() => {
   }
 
   // ════════════════════════════════════════════════════════════
+  // BÚSQUEDA GLOBAL
+  // ════════════════════════════════════════════════════════════
+
+  /**
+   * Recibe el array de colecciones (formato API) y lo almacena en el índice.
+   * Llamado por catalog.js después de cargar las categorías.
+   */
+  function indexCategories(cats) {
+    _searchIdx.cats = (cats || []).map(c => ({ slug: c.slug, name: c.name }));
+  }
+
+  /**
+   * Añade/actualiza los productos de una colección en el índice.
+   * Llamado por content.js cada vez que carga los items de una colección.
+   * Reemplaza entradas previas del mismo slug para mantener el índice fresco.
+   */
+  function indexProducts(slug, colName, items) {
+    // Eliminar entradas antiguas de este slug
+    _searchIdx.prods = _searchIdx.prods.filter(p => p.colSlug !== slug);
+    // Añadir las nuevas — solo productos que tengan nombre resoluble
+    (items || []).forEach(item => {
+      const name = String(
+        item.nombre || item.name || item.titulo || item.title ||
+        item.producto || item.item || ''
+      ).trim();
+      if (name) {
+        _searchIdx.prods.push({
+          id:      item.id,
+          name,
+          colSlug: String(slug     || ''),
+          colName: String(colName  || slug),
+        });
+      }
+    });
+  }
+
+  /**
+   * Ejecuta la búsqueda sobre `_searchIdx` y renderiza el dropdown.
+   * Si q está vacío oculta el panel. Sin resultados → mensaje "sin resultados".
+   * Agrupa por Categorías y Productos. Texto escapado con escHtml() (anti-XSS).
+   */
+  function runSearch(q, resultsEl) {
+    if (!q) { resultsEl.classList.add('hidden'); return; }
+    const lower      = q.toLowerCase();
+    const matchCats  = _searchIdx.cats.filter(c => c.name.toLowerCase().includes(lower)).slice(0, 4);
+    const matchProds = _searchIdx.prods.filter(p => p.name.toLowerCase().includes(lower)).slice(0, 6);
+
+    if (!matchCats.length && !matchProds.length) {
+      resultsEl.innerHTML = `
+        <div style="padding:1.25rem 1rem;text-align:center;color:#475569;font-size:.8rem">
+          Sin resultados para
+          <strong style="color:#94a3b8;font-weight:600">"${escHtml(q)}"</strong>
+        </div>`;
+      resultsEl.classList.remove('hidden');
+      return;
+    }
+
+    let html = '';
+
+    // ── Sección: Categorías ───────────────────────────────────────────────────
+    if (matchCats.length) {
+      html += `<p style="padding:.625rem .875rem .2rem;
+                          font-size:.6rem;font-weight:700;
+                          color:#475569;text-transform:uppercase;letter-spacing:.09em">
+                 Categorías
+               </p>`;
+      matchCats.forEach(c => {
+        html += `
+          <button data-action="search-goto-cat" data-slug="${escHtml(c.slug)}"
+                  class="w-full flex items-center gap-2.5 px-3.5 py-2.5
+                         hover:bg-slate-800 transition-colors cursor-pointer"
+                  style="background:none;border:none;text-align:left">
+            <svg xmlns="http://www.w3.org/2000/svg"
+                 style="width:.9rem;height:.9rem;color:#6366f1;flex-shrink:0"
+                 fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
+            </svg>
+            <span style="font-size:.8125rem;font-weight:500;color:#e2e8f0;flex:1;
+                          overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+              ${escHtml(c.name)}
+            </span>
+            <span style="font-size:.7rem;color:#475569;white-space:nowrap;flex-shrink:0">
+              Ver →
+            </span>
+          </button>`;
+      });
+    }
+
+    // ── Sección: Productos ────────────────────────────────────────────────────
+    if (matchProds.length) {
+      if (matchCats.length) {
+        html += `<div style="height:1px;background:#334155;margin:.25rem 0"></div>`;
+      }
+      html += `<p style="padding:.625rem .875rem .2rem;
+                          font-size:.6rem;font-weight:700;
+                          color:#475569;text-transform:uppercase;letter-spacing:.09em">
+                 Productos
+               </p>`;
+      matchProds.forEach(p => {
+        html += `
+          <button data-action="search-goto-prod" data-colslug="${escHtml(p.colSlug)}"
+                  class="w-full flex items-center gap-2.5 px-3.5 py-2
+                         hover:bg-slate-800 transition-colors cursor-pointer"
+                  style="background:none;border:none;text-align:left">
+            <svg xmlns="http://www.w3.org/2000/svg"
+                 style="width:.9rem;height:.9rem;color:#8b5cf6;flex-shrink:0"
+                 fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10"/>
+            </svg>
+            <div style="flex:1;min-width:0">
+              <span style="display:block;font-size:.8125rem;font-weight:500;color:#e2e8f0;
+                            overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+                ${escHtml(p.name)}
+              </span>
+              <span style="font-size:.7rem;color:#475569">
+                en: ${escHtml(p.colName)}
+              </span>
+            </div>
+          </button>`;
+      });
+    }
+
+    // Padding inferior
+    html += `<div style="height:.375rem"></div>`;
+
+    resultsEl.innerHTML = html;
+    resultsEl.classList.remove('hidden');
+  }
+
+  /**
+   * Registra todos los eventos del input de búsqueda global.
+   * Sin un solo inline handler — 100 % CSP-compliant.
+   * Llamado al final de bindAppEvents().
+   */
+  function bindSearch() {
+    const input   = document.getElementById('global-search-input');
+    const results = document.getElementById('global-search-results');
+    const badge   = document.getElementById('search-slash-badge');
+    if (!input || !results) return;
+
+    let blurTimer = null;
+
+    // Focus: anillo indigo + ocultar badge
+    input.addEventListener('focus', () => {
+      clearTimeout(blurTimer);
+      input.style.borderColor = '#6366f1';
+      input.style.boxShadow   = '0 0 0 3px rgba(99,102,241,.2)';
+      if (badge) badge.style.opacity = '0';
+      if (input.value.trim()) runSearch(input.value.trim(), results);
+    });
+
+    // Blur: restaurar estilo + cerrar dropdown con delay (permite click en resultado)
+    input.addEventListener('blur', () => {
+      input.style.borderColor = '#334155';
+      input.style.boxShadow   = 'none';
+      blurTimer = setTimeout(() => {
+        results.classList.add('hidden');
+        if (badge) badge.style.opacity = '1';
+      }, 200);
+    });
+
+    // Input: búsqueda en tiempo real
+    input.addEventListener('input', () => {
+      clearTimeout(blurTimer);
+      runSearch(input.value.trim(), results);
+    });
+
+    // Teclado dentro del input
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Escape') {
+        input.value = '';
+        results.classList.add('hidden');
+        input.blur();
+      }
+      // Enter → navegar al primer resultado
+      if (e.key === 'Enter') {
+        const first = results.querySelector('[data-action^="search-goto"]');
+        if (first) { e.preventDefault(); first.click(); }
+      }
+    });
+  }
+
+  // ════════════════════════════════════════════════════════════
   // UTILIDADES
   // ════════════════════════════════════════════════════════════
 
@@ -1261,7 +1532,8 @@ const App = (() => {
       .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
-  return { init, navigate, navigateToContent, showLogin, showAuth, showToast };
+  return { init, navigate, navigateToContent, showLogin, showAuth, showToast,
+           indexCategories, indexProducts };
 })();
 
 window.App = App;

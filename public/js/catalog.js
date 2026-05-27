@@ -340,6 +340,11 @@ const Catalog = (() => {
         grid.appendChild(card);
       });
 
+      // Actualizar índice de búsqueda global del navbar
+      if (window.App && typeof App.indexCategories === 'function') {
+        App.indexCategories(data);
+      }
+
     } catch {
       grid.innerHTML =
         '<p class="text-red-400 text-sm col-span-full text-center py-10">' +
