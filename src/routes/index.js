@@ -44,6 +44,7 @@ const Collection = require('../models/Collection');
 const Item       = require('../models/Item');
 const upload     = require('../middleware/upload');
 const cloudinary = require('../config/cloudinary');
+const sharp      = require('sharp');
 const { requireAuth }                        = require('../middleware/auth');
 const { requireSuperAdmin }                  = require('../middleware/requireSuperAdmin');
 const { authLimiter, checkoutLimiter }       = require('../middleware/security');
@@ -444,28 +445,37 @@ router.post('/admin/upload', requireAuth, function (req, res) {
     if (!req.file) return res.status(400).json({ success: false, message: 'No se recibió ningún archivo.' });
 
     try {
-      // Subir el buffer en memoria directamente a Cloudinary vía upload_stream
+      // ── Conversión a WebP con sharp (calidad 80, sin metadatos EXIF) ───────
+      // Acepta JPG, PNG, WebP o GIF (primer fotograma) y los normaliza a WebP.
+      // Reduce el tamaño promedio un 25-40 % respecto a JPEG equivalente.
+      const webpBuffer = await sharp(req.file.buffer)
+        .webp({ quality: 80 })
+        .withMetadata(false)    // elimina EXIF / datos de ubicación
+        .toBuffer();
+
+      // ── Subir el buffer WebP a Cloudinary vía upload_stream ───────────────
       const result = await new Promise((resolve, reject) => {
         const stream = cloudinary.uploader.upload_stream(
           {
             folder:        'full-stock',
             resource_type: 'image',
-            // Nombre público basado en timestamp para evitar colisiones
-            public_id: `img-${Date.now()}`,
+            format:        'webp',             // fuerza salida WebP en Cloudinary
+            public_id:     `img-${Date.now()}`,
           },
           (error, result) => {
             if (error) reject(error);
             else       resolve(result);
           }
         );
-        stream.end(req.file.buffer);
+        stream.end(webpBuffer);
       });
 
       res.json({
         success:   true,
-        url:       result.secure_url,   // URL HTTPS de Cloudinary
+        url:       result.secure_url,   // URL HTTPS de Cloudinary (.webp)
         public_id: result.public_id,
-        size:      result.bytes,
+        size:      result.bytes,        // tamaño ya en WebP
+        format:    'webp',
       });
 
     } catch (uploadErr) {

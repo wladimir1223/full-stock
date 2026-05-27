@@ -389,12 +389,16 @@ const Content = (() => {
         `;
         break;
 
-      case 'number':
+      case 'number': {
+        // Stock: enteros ≥ 0. Otros campos numéricos: paso libre.
+        const isStock = (field.key === 'stock');
         inner = `
           <input type="number" id="${baseId}" class="input-field w-full"
-            value="${escHtml(String(value))}" placeholder="${field.label}" step="any"/>
+            value="${escHtml(String(value))}" placeholder="${field.label}"
+            ${isStock ? 'min="0" step="1"' : 'step="any"'}/>
         `;
         break;
+      }
 
       case 'image_url':
         // El widget se divide en:
@@ -587,7 +591,18 @@ const Content = (() => {
         errors.push(`El campo "${f.label}" es obligatorio.`);
         continue;
       }
-      payload[f.key] = f.type === 'number' ? Number(val) : val;
+
+      if (f.type === 'number') {
+        const num = Number(val);
+        // Validación frontend: stock no puede ser negativo
+        if (f.key === 'stock' && num < 0) {
+          errors.push('El stock no puede ser un número negativo.');
+          continue;
+        }
+        payload[f.key] = num;
+      } else {
+        payload[f.key] = val;
+      }
     }
 
     if (errors.length > 0) {

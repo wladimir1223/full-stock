@@ -69,6 +69,8 @@ function validateAndSanitize(fields, body) {
           const num = Number(raw);
           if (isNaN(num)) {
             errors.push(`El campo "${field.label}" debe ser un número válido.`);
+          } else if (field.key === 'stock' && num < 0) {
+            errors.push('El stock no puede ser un número negativo.');   // CVE validación stock
           } else {
             data[field.key] = num;
           }
