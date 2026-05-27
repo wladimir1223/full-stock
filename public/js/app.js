@@ -96,40 +96,142 @@ const App = (() => {
     document.body.innerHTML = '';
 
     const wrap = document.createElement('div');
-    wrap.className = 'min-h-screen bg-slate-950 flex items-center justify-center px-4 py-10';
+    wrap.className = 'min-h-screen bg-slate-950';
     wrap.innerHTML = `
-      <div style="width:100%;max-width:440px">
 
-        <!-- Logo -->
-        <div class="text-center mb-8">
-          <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600
-                      flex items-center justify-center mx-auto mb-4 shadow-2xl shadow-indigo-900/40">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-white" fill="none"
-                 viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10"/>
-            </svg>
+      <!-- ════════════════════════════════════════════════════ NAVBAR ═══ -->
+      <nav style="position:fixed;top:0;left:0;right:0;z-index:50;
+                  background:rgba(10,15,30,.88);backdrop-filter:blur(14px);
+                  border-bottom:1px solid rgba(51,65,85,.35)">
+        <div style="max-width:1280px;margin:0 auto;padding:.875rem 1.5rem;
+                    display:flex;align-items:center;gap:1rem">
+          <div style="display:flex;align-items:center;gap:.625rem;margin-right:auto">
+            <div style="width:2rem;height:2rem;border-radius:.5rem;flex-shrink:0;
+                        background:linear-gradient(135deg,#6366f1,#8b5cf6);
+                        display:flex;align-items:center;justify-content:center">
+              <svg xmlns="http://www.w3.org/2000/svg" style="width:1.1rem;height:1.1rem"
+                   fill="none" viewBox="0 0 24 24" stroke="white" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10"/>
+              </svg>
+            </div>
+            <span style="font-size:1rem;font-weight:700;color:#f1f5f9">
+              Full<span style="color:#818cf8">Stock</span>
+            </span>
           </div>
-          <h1 class="text-2xl font-bold">
-            <span class="text-white">Full</span><span class="text-indigo-400">Stock</span>
-          </h1>
-          <p class="text-slate-500 text-sm mt-1">Gestor de Inventario</p>
+          <a id="nav-help-link" href="mailto:soporte@fullstock.app"
+             style="font-size:.8rem;font-weight:500;color:#94a3b8;text-decoration:none;
+                    padding:.3rem .6rem;border-radius:.375rem;transition:color .15s">
+            Ayuda
+          </a>
+          <button id="nav-login-btn"
+            style="font-size:.8125rem;font-weight:600;padding:.45rem 1.1rem;
+                   background:transparent;border:1px solid rgba(99,102,241,.5);color:#818cf8;
+                   border-radius:.5rem;cursor:pointer;transition:all .15s;white-space:nowrap">
+            Iniciar Sesión
+          </button>
         </div>
+      </nav>
 
-        <!-- Card -->
-        <div style="background:#1e293b;border:1px solid #334155;border-radius:1rem;padding:0">
+      <!-- ════════════════════════════════════════════════════ HERO ════ -->
+      <section style="position:relative;overflow:hidden;
+                       background:radial-gradient(ellipse 80% 55% at 15% 35%,rgba(99,102,241,.16) 0%,transparent 60%),
+                                  radial-gradient(ellipse 60% 45% at 90% 15%,rgba(139,92,246,.11) 0%,transparent 55%),
+                                  #0a0f1e;
+                       padding:4.5rem 1.5rem 5rem;margin-top:3.75rem">
+        <!-- Dot-grid pattern -->
+        <div style="position:absolute;inset:0;pointer-events:none;opacity:.033;
+                    background-image:linear-gradient(rgba(148,163,184,.6) 1px,transparent 1px),
+                                     linear-gradient(90deg,rgba(148,163,184,.6) 1px,transparent 1px);
+                    background-size:52px 52px"></div>
+        <!-- Glow orbs -->
+        <div style="position:absolute;top:-120px;left:-100px;width:600px;height:600px;
+                    background:radial-gradient(circle,rgba(99,102,241,.1) 0%,transparent 65%);
+                    pointer-events:none"></div>
+        <div style="position:absolute;bottom:-80px;right:-60px;width:500px;height:500px;
+                    background:radial-gradient(circle,rgba(139,92,246,.08) 0%,transparent 65%);
+                    pointer-events:none"></div>
 
-          <!-- Tabs -->
-          <div style="display:flex;border-bottom:1px solid #334155">
-            <button id="tab-login"
-              style="flex:1;padding:.85rem;font-size:.875rem;font-weight:600;border:none;
-                     border-radius:1rem 0 0 0;cursor:pointer;transition:background .15s,color .15s"
-              class="auth-tab" data-tab="login">Iniciar sesión</button>
-            <button id="tab-register"
-              style="flex:1;padding:.85rem;font-size:.875rem;font-weight:600;border:none;
-                     border-radius:0 1rem 0 0;cursor:pointer;transition:background .15s,color .15s"
-              class="auth-tab" data-tab="register">Crear cuenta</button>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center"
+             style="position:relative;max-width:1280px;margin:0 auto">
+
+          <!-- ── Hero copy (left column) ── -->
+          <div>
+            <div style="display:inline-flex;align-items:center;gap:.45rem;
+                        background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.22);
+                        border-radius:999px;padding:.3rem .875rem;margin-bottom:1.5rem">
+              <svg xmlns="http://www.w3.org/2000/svg" style="width:.8rem;height:.8rem;flex-shrink:0"
+                   fill="none" viewBox="0 0 24 24" stroke="#818cf8" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/>
+              </svg>
+              <span style="font-size:.775rem;font-weight:600;color:#818cf8;letter-spacing:.01em">
+                Panel de Inventario para WhatsApp Business
+              </span>
+            </div>
+            <h1 style="font-size:clamp(2rem,4vw,3.125rem);font-weight:800;line-height:1.13;
+                       color:#f1f5f9;margin-bottom:1.25rem;letter-spacing:-.025em">
+              Potencia tu Tienda de<br>
+              <span style="background:linear-gradient(135deg,#818cf8 10%,#c4b5fd 90%);
+                           -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+                           background-clip:text">WhatsApp</span>
+              con un Inventario Inteligente
+            </h1>
+            <p style="font-size:1rem;color:#94a3b8;line-height:1.75;margin-bottom:2rem;max-width:500px">
+              Gestiona productos, controla el stock en tiempo real y recibe pedidos
+              profesionales por WhatsApp, todo desde un panel premium.
+            </p>
+            <button id="hero-cta-btn"
+              style="display:inline-flex;align-items:center;gap:.625rem;
+                     background:linear-gradient(135deg,#6366f1,#8b5cf6);
+                     color:#fff;font-weight:700;font-size:.9375rem;
+                     padding:.8rem 2rem;border-radius:.625rem;border:none;
+                     cursor:pointer;transition:opacity .15s,transform .1s;
+                     box-shadow:0 0 32px rgba(99,102,241,.3)">
+              <svg xmlns="http://www.w3.org/2000/svg" style="width:1rem;height:1rem;flex-shrink:0"
+                   fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+              </svg>
+              Crear Cuenta Gratis
+            </button>
+            <div style="display:flex;flex-direction:column;gap:.6rem;margin-top:2.25rem">
+              ${[
+                'Stock en tiempo real — nunca vendas lo que ya no tienes',
+                'Catálogo público listo en segundos',
+                'Pedidos unificados directamente en tu WhatsApp',
+              ].map(t => `
+                <div style="display:flex;align-items:center;gap:.625rem">
+                  <div style="width:1.25rem;height:1.25rem;border-radius:50%;flex-shrink:0;
+                              background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.3);
+                              display:flex;align-items:center;justify-content:center">
+                    <svg xmlns="http://www.w3.org/2000/svg" style="width:.65rem;height:.65rem"
+                         fill="none" viewBox="0 0 24 24" stroke="#818cf8" stroke-width="3">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                    </svg>
+                  </div>
+                  <span style="font-size:.8125rem;color:#94a3b8">${t}</span>
+                </div>
+              `).join('')}
+            </div>
           </div>
+
+          <!-- ── Auth card (right column) ── -->
+          <div id="auth-card-wrap"
+            style="background:rgba(30,41,59,.95);border:1px solid #334155;
+                   border-radius:1.125rem;padding:0;
+                   box-shadow:0 24px 64px rgba(0,0,0,.55),0 0 0 1px rgba(99,102,241,.07)">
+
+            <!-- Tabs -->
+            <div style="display:flex;border-bottom:1px solid #334155">
+              <button id="tab-login"
+                style="flex:1;padding:.85rem;font-size:.875rem;font-weight:600;border:none;
+                       border-radius:1.125rem 0 0 0;cursor:pointer;transition:background .15s,color .15s"
+                class="auth-tab" data-tab="login">Iniciar sesión</button>
+              <button id="tab-register"
+                style="flex:1;padding:.85rem;font-size:.875rem;font-weight:600;border:none;
+                       border-radius:0 1.125rem 0 0;cursor:pointer;transition:background .15s,color .15s"
+                class="auth-tab" data-tab="register">Crear cuenta</button>
+            </div>
 
           <div style="padding:1.75rem">
 
@@ -284,8 +386,86 @@ const App = (() => {
             </div>
 
           </div>
+          </div><!-- /auth-card-wrap -->
+
+        </div><!-- /hero grid -->
+      </section>
+
+      <!-- ════════════════════════════════════════════════ FEATURES ═══ -->
+      <section style="background:#06080f;border-top:1px solid rgba(30,41,59,.8);padding:5rem 1.5rem">
+        <div style="max-width:1280px;margin:0 auto">
+          <div style="text-align:center;margin-bottom:3rem">
+            <h2 style="font-size:clamp(1.375rem,3vw,2rem);font-weight:700;color:#f1f5f9;
+                       margin-bottom:.625rem;letter-spacing:-.02em">
+              Todo lo que necesitas, en un solo lugar
+            </h2>
+            <p style="font-size:.9rem;color:#64748b;max-width:460px;margin:0 auto;line-height:1.65">
+              Diseñado para negocios que venden por WhatsApp y quieren escalar sin perder el control.
+            </p>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
+            ${[
+              {
+                path: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10',
+                color: '#6366f1', bg: 'rgba(99,102,241,.1)',
+                title: 'Gestión Centralizada',
+                desc: 'Control total sobre categorías, productos y stock disponible desde un único panel.',
+              },
+              {
+                path: 'M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z',
+                color: '#22c55e', bg: 'rgba(34,197,94,.1)',
+                title: 'Pedidos Profesionales',
+                desc: 'Recibe pedidos claros y unificados directamente en tu chat de WhatsApp.',
+              },
+              {
+                path: 'M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1',
+                color: '#f59e0b', bg: 'rgba(245,158,11,.1)',
+                title: 'Integración Flexible',
+                desc: 'Usa nuestra tienda pública o conecta tu propia web con nuestra API RESTful abierta.',
+              },
+              {
+                path: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z',
+                color: '#8b5cf6', bg: 'rgba(139,92,246,.1)',
+                title: 'Analíticas en Tiempo Real',
+                desc: 'Visualiza ventas, productos destacados y canales de conversión en el dashboard.',
+              },
+            ].map(f => `
+              <div style="background:#0d1526;border:1px solid #1e293b;border-radius:.875rem;
+                          padding:1.5rem;transition:border-color .2s">
+                <div style="width:2.75rem;height:2.75rem;border-radius:.625rem;flex-shrink:0;
+                            margin-bottom:1.1rem;background:${f.bg};
+                            border:1px solid ${f.color}28;
+                            display:flex;align-items:center;justify-content:center">
+                  <svg xmlns="http://www.w3.org/2000/svg" style="width:1.3rem;height:1.3rem"
+                       fill="none" viewBox="0 0 24 24" stroke="${f.color}" stroke-width="1.75">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="${f.path}"/>
+                  </svg>
+                </div>
+                <h3 style="font-size:.9375rem;font-weight:700;color:#e2e8f0;margin-bottom:.45rem">${f.title}</h3>
+                <p style="font-size:.8125rem;color:#64748b;line-height:1.65">${f.desc}</p>
+              </div>
+            `).join('')}
+          </div>
         </div>
-      </div>
+      </section>
+
+      <!-- ════════════════════════════════════════════════ FOOTER ════ -->
+      <footer style="background:#06080f;border-top:1px solid rgba(15,23,42,.9);padding:1.75rem 1.5rem">
+        <div style="max-width:1280px;margin:0 auto;display:flex;align-items:center;
+                    justify-content:space-between;flex-wrap:wrap;gap:.75rem">
+          <div style="display:flex;align-items:center;gap:.5rem">
+            <svg xmlns="http://www.w3.org/2000/svg" style="width:.9rem;height:.9rem"
+                 fill="none" viewBox="0 0 24 24" stroke="#6366f1" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10"/>
+            </svg>
+            <span style="font-size:.775rem;color:#475569;font-weight:500">
+              Full<span style="color:#6366f1">Stock</span> — Panel de Inventario SaaS
+            </span>
+          </div>
+          <p style="font-size:.75rem;color:#334155">© 2025 FullStock. Todos los derechos reservados.</p>
+        </div>
+      </footer>
 
       <!-- Modal: Recuperar contraseña -->
       <div id="modal-forgot"
@@ -387,6 +567,24 @@ const App = (() => {
     });
     liBtn.addEventListener('click', doLogin);
     if (defaultTab === 'login') liEmail.focus();
+
+    // ── Navbar "Iniciar Sesión" & Hero CTA ────────────────────────────────────
+    const navLoginBtn  = wrap.querySelector('#nav-login-btn');
+    const heroCta      = wrap.querySelector('#hero-cta-btn');
+    const authCardWrap = wrap.querySelector('#auth-card-wrap');
+    function scrollToCard() {
+      if (authCardWrap) authCardWrap.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    if (navLoginBtn) {
+      navLoginBtn.addEventListener('click', () => { activateTab('login'); scrollToCard(); liEmail.focus(); });
+      navLoginBtn.addEventListener('mouseover', () => { navLoginBtn.style.background = 'rgba(99,102,241,.1)'; });
+      navLoginBtn.addEventListener('mouseout',  () => { navLoginBtn.style.background = 'transparent'; });
+    }
+    if (heroCta) {
+      heroCta.addEventListener('click', () => { activateTab('register'); scrollToCard(); });
+      heroCta.addEventListener('mouseover', () => { heroCta.style.opacity = '.88'; });
+      heroCta.addEventListener('mouseout',  () => { heroCta.style.opacity = '1'; });
+    }
 
     async function doLogin() {
       const email = liEmail.value.trim();
