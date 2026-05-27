@@ -540,6 +540,14 @@ router.get('/admin/analytics', requireAuth, async (req, res) => {
       return 0;
     }
 
+    // ── Extrae precio de costo (precioCosto guardado como passthrough) ────────
+    function extractCost(data) {
+      if (!data) return 0;
+      const c = data.precioCosto;
+      if (c !== undefined && !isNaN(Number(c)) && Number(c) >= 0) return Number(c);
+      return 0;
+    }
+
     // ── 4. Busca ítem por nombre (para CHECKOUT) ──────────────────────────────
     function findItemByName(name) {
       const lc = name.toLowerCase();
@@ -554,6 +562,7 @@ router.get('/admin/analytics', requireAuth, async (req, res) => {
     const topMap   = {};
     let totalTransactions = 0;
     let totalRevenue      = 0;
+    let totalCost         = 0;
     const byChannel = {
       web:    { count: 0, revenue: 0 },
       direct: { count: 0, revenue: 0 },
@@ -561,7 +570,7 @@ router.get('/admin/analytics', requireAuth, async (req, res) => {
 
     for (const log of logs) {
       const dateStr = log.createdAt.toISOString().slice(0, 10);
-      if (!byDayMap[dateStr]) byDayMap[dateStr] = { date: dateStr, count: 0, revenue: 0 };
+      if (!byDayMap[dateStr]) byDayMap[dateStr] = { date: dateStr, count: 0, revenue: 0, cost: 0 };
 
       if (log.action === 'SELL_ITEM') {
         // details: "Vendió N unidad(es) de "NAME" en "slug". Stock restante: M"
@@ -572,12 +581,15 @@ router.get('/admin/analytics', requireAuth, async (req, res) => {
 
         const item  = log.entityId ? itemById[log.entityId] : null;
         const price = item ? extractPrice(item.data) : 0;
+        const cost  = item ? extractCost(item.data) * qty : 0;
         const rev   = price * qty;
 
         totalTransactions             += 1;
         totalRevenue                  += rev;
+        totalCost                     += cost;
         byDayMap[dateStr].count       += 1;
         byDayMap[dateStr].revenue     += rev;
+        byDayMap[dateStr].cost        += cost;
         byChannel.direct.count        += 1;
         byChannel.direct.revenue      += rev;
 
@@ -589,7 +601,8 @@ router.get('/admin/analytics', requireAuth, async (req, res) => {
         // details: "Compra pública: ProductName x2, AnotherProduct x1"
         const body  = (log.details || '').replace(/^Compra pública:\s*/i, '');
         const parts = body.split(',').map(s => s.trim()).filter(Boolean);
-        let orderRev = 0;
+        let orderRev  = 0;
+        let orderCost = 0;
 
         for (const part of parts) {
           const m = /^(.+?)\s+x(\d+)$/.exec(part);
@@ -598,9 +611,11 @@ router.get('/admin/analytics', requireAuth, async (req, res) => {
           const qty   = parseInt(m[2], 10);
           const item  = findItemByName(pName);
           const price = item ? extractPrice(item.data) : 0;
+          const cost  = item ? extractCost(item.data) * qty : 0;
           const rev   = price * qty;
 
-          orderRev += rev;
+          orderRev  += rev;
+          orderCost += cost;
           if (!topMap[pName]) topMap[pName] = { name: pName, quantity: 0, revenue: 0 };
           topMap[pName].quantity += qty;
           topMap[pName].revenue  += rev;
@@ -608,8 +623,10 @@ router.get('/admin/analytics', requireAuth, async (req, res) => {
 
         totalTransactions           += 1;
         totalRevenue                += orderRev;
+        totalCost                   += orderCost;
         byDayMap[dateStr].count     += 1;
         byDayMap[dateStr].revenue   += orderRev;
+        byDayMap[dateStr].cost      += orderCost;
         byChannel.web.count         += 1;
         byChannel.web.revenue       += orderRev;
       }
@@ -623,9 +640,10 @@ router.get('/admin/analytics', requireAuth, async (req, res) => {
       .slice(0, 5)
       .map(p => ({ ...p, revenue: Math.round(p.revenue * 100) / 100 }));
 
-    const avgTicket = totalTransactions > 0
+    const avgTicket  = totalTransactions > 0
       ? Math.round(totalRevenue / totalTransactions * 100) / 100
       : 0;
+    const netProfit  = Math.round((totalRevenue - totalCost) * 100) / 100;
 
     res.json({
       success: true,
@@ -633,6 +651,8 @@ router.get('/admin/analytics', requireAuth, async (req, res) => {
         period:            `${days}d`,
         totalTransactions,
         totalRevenue:      Math.round(totalRevenue * 100) / 100,
+        totalCost:         Math.round(totalCost   * 100) / 100,
+        netProfit,
         avgTicket,
         byChannel,
         byDay,

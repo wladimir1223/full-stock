@@ -162,6 +162,14 @@ async function createItem(req, res) {
     const { errors, data } = validateAndSanitize(col.fields, req.body);
     if (errors.length > 0) return res.status(400).json({ success: false, errors });
 
+    // ── Passthrough: precioCosto (no forma parte del esquema dinámico pero se
+    //    persiste en data para que el endpoint de analíticas calcule ganancia neta) ──
+    const rawCosto = req.body.precioCosto;
+    if (rawCosto !== undefined && rawCosto !== null && rawCosto !== '') {
+      const costo = Number(rawCosto);
+      if (!isNaN(costo) && costo >= 0) data.precioCosto = costo;
+    }
+
     const item = await Item.create({
       tenantId:       req.tenant.id,
       collectionSlug: req.params.slug,
@@ -192,6 +200,13 @@ async function updateItem(req, res) {
 
     const { errors, data } = validateAndSanitize(col.fields, req.body);
     if (errors.length > 0) return res.status(400).json({ success: false, errors });
+
+    // ── Passthrough: precioCosto ─────────────────────────────────────────────
+    const rawCosto = req.body.precioCosto;
+    if (rawCosto !== undefined && rawCosto !== null && rawCosto !== '') {
+      const costo = Number(rawCosto);
+      if (!isNaN(costo) && costo >= 0) data.precioCosto = costo;
+    }
 
     const item = await Item.findOneAndUpdate(
       { _id: req.params.id, tenantId: req.tenant.id, collectionSlug: req.params.slug },

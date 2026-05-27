@@ -337,18 +337,61 @@ const Content = (() => {
 
   // ─── Formulario dinámico ──────────────────────────────────────────────────
 
+  // Claves que se reconocen como campo "precio de venta" para el calculador
+  const PRECIO_KEYS = ['precio', 'price', 'Price', 'Precio'];
+
   function openForm(main, item = null) {
     editingId     = item ? item.id : null;
     const isEdit  = editingId !== null;
     const wrapper = main.querySelector('#item-form-wrapper');
+
+    // ── Detectar si existe un campo de precio para activar la calculadora ──
+    const precioField    = activeSchema.fields.find(f => PRECIO_KEYS.includes(f.key));
+    const hasPrecio      = !!precioField;
+    const precioCostoVal = item ? (item.precioCosto ?? '') : '';
+
+    // ── Construir campos, inyectando #precio-costo justo después de precio ──
+    let fieldsHtml = '';
+    for (const f of activeSchema.fields) {
+      fieldsHtml += buildInput(f, item);
+      if (hasPrecio && f.key === precioField.key) {
+        fieldsHtml += `
+          <div>
+            <label class="label" for="precio-costo">Precio de Costo</label>
+            <input type="number" id="precio-costo" class="input-field w-full"
+              value="${escHtml(String(precioCostoVal))}"
+              placeholder="Costo de adquisición"
+              step="any" min="0"/>
+          </div>
+        `;
+      }
+    }
+
+    // ── Indicador de ganancia (solo cuando hay campo precio) ────────────────
+    const profitHtml = hasPrecio ? `
+      <div id="profit-indicator"
+           style="background:#0f172a;border:1px solid #1e293b;border-radius:.5rem;
+                  padding:.625rem 1rem;margin-top:.125rem;margin-bottom:.125rem;
+                  display:flex;align-items:center;justify-content:space-between;
+                  gap:1rem;flex-wrap:wrap;transition:background .2s,border-color .2s">
+        <span style="font-size:.7rem;color:#475569;font-weight:600;text-transform:uppercase;
+                     letter-spacing:.06em">Ganancia por unidad</span>
+        <span id="profit-value"
+              style="font-size:.8rem;font-weight:700;color:#94a3b8;font-family:monospace;
+                     transition:color .2s">
+          $0.00 (0% margen)
+        </span>
+      </div>
+    ` : '';
 
     wrapper.innerHTML = `
       <h3 class="text-base font-semibold text-white mb-4">
         ${isEdit ? 'Editar' : 'Nuevo'} ${activeSchema.name.replace(/s$/, '')}
       </h3>
       <div class="grid gap-4 sm:grid-cols-2">
-        ${activeSchema.fields.map(f => buildInput(f, item)).join('')}
+        ${fieldsHtml}
       </div>
+      ${profitHtml}
       <div id="form-error" class="hidden text-red-400 text-sm mt-3"></div>
       <div class="flex gap-3 mt-5">
         <button id="submit-form-btn" class="btn-primary flex-1">
@@ -365,6 +408,35 @@ const Content = (() => {
     activeSchema.fields
       .filter(f => isImageField(f))
       .forEach(f => bindImageWidget(wrapper, f.key, item?.[f.key] ?? ''));
+
+    // ── Calculadora de ganancia en tiempo real ─────────────────────────────
+    if (hasPrecio) {
+      const pvEl  = wrapper.querySelector(`#field-${precioField.key}`);
+      const pcEl  = wrapper.querySelector('#precio-costo');
+      const indEl = wrapper.querySelector('#profit-indicator');
+      const valEl = wrapper.querySelector('#profit-value');
+
+      function updateProfit() {
+        const pv  = parseFloat(pvEl  ? pvEl.value  : 0) || 0;
+        const pc  = parseFloat(pcEl  ? pcEl.value  : 0) || 0;
+        const gan = pv - pc;
+        const mar = pv > 0 ? (gan / pv * 100) : 0;
+        const neg = gan < 0;
+
+        if (valEl) {
+          valEl.textContent = '$' + gan.toFixed(2) + ' (' + mar.toFixed(1) + '% margen)';
+          valEl.style.color = neg ? '#f87171' : gan > 0 ? '#34d399' : '#94a3b8';
+        }
+        if (indEl) {
+          indEl.style.borderColor = neg ? '#7f1d1d' : '#1e293b';
+          indEl.style.background  = neg ? 'rgba(127,29,29,.12)' : '#0f172a';
+        }
+      }
+
+      if (pvEl) pvEl.addEventListener('input', updateProfit);
+      if (pcEl) pcEl.addEventListener('input', updateProfit);
+      updateProfit(); // inicializa con los valores actuales
+    }
 
     wrapper.querySelector('#cancel-form-btn').addEventListener('click', () => {
       wrapper.classList.add('hidden');
@@ -609,6 +681,13 @@ const Content = (() => {
       } else {
         payload[f.key] = val;
       }
+    }
+
+    // ── Incluir precioCosto si el campo está presente en el formulario ────────
+    const costoEl = wrapper.querySelector('#precio-costo');
+    if (costoEl && costoEl.value.trim() !== '') {
+      const costo = Number(costoEl.value);
+      if (!isNaN(costo) && costo >= 0) payload.precioCosto = costo;
     }
 
     if (errors.length > 0) {

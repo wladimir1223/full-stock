@@ -76,9 +76,10 @@ const Analytics = (() => {
         </div>
 
         <!-- KPI Cards (skeleton mientras carga) -->
-        <!-- grid-cols responsive: 1 col en móvil → 2 en sm → 3 en lg -->
+        <!-- grid-cols responsive: 1 col en móvil → 2 en sm → 4 en lg -->
         <div id="analytics-kpis"
-             class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+             class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          ${kpiSkeleton()}
           ${kpiSkeleton()}
           ${kpiSkeleton()}
           ${kpiSkeleton()}
@@ -90,7 +91,7 @@ const Analytics = (() => {
           <div style="display:flex;align-items:center;justify-content:space-between;
                       margin-bottom:1rem;flex-wrap:wrap;gap:.5rem">
             <h2 style="font-size:.875rem;font-weight:600;color:#e2e8f0;margin:0">
-              Ingresos por día
+              Ingresos y Ganancia por día
             </h2>
             <span id="analytics-chart-period"
                   style="font-size:.7rem;color:#475569;font-weight:500"></span>
@@ -207,12 +208,23 @@ const Analytics = (() => {
     var el = container.querySelector('#analytics-kpis');
     if (!el) return;
 
+    var profit     = typeof data.netProfit === 'number' ? data.netProfit : (data.totalRevenue || 0);
+    var profColor  = profit < 0 ? '#f87171' : profit > 0 ? '#34d399' : '#94a3b8';
+
     el.innerHTML =
       kpiCard(
         'Total Ingresos',
         fmtCurrency(data.totalRevenue || 0),
         '#6366f1',
         '<path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>'
+      ) +
+      kpiCard(
+        'Ganancia Neta',
+        fmtCurrency(profit),
+        '#10b981',
+        '<path stroke-linecap="round" stroke-linejoin="round" d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>',
+        'rgba(16,185,129,.12)',
+        profColor
       ) +
       kpiCard(
         'Transacciones',
@@ -228,7 +240,10 @@ const Analytics = (() => {
       );
   }
 
-  function kpiCard(label, value, color, iconPath) {
+  // iconBg y valueColor son opcionales (backward-compatible)
+  function kpiCard(label, value, color, iconPath, iconBg, valueColor) {
+    iconBg     = iconBg     || 'rgba(99,102,241,.12)';
+    valueColor = valueColor || '#f1f5f9';
     return `
       <div style="background:#1e293b;border:1px solid #334155;border-radius:.75rem;padding:1.25rem">
         <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:.5rem">
@@ -237,13 +252,13 @@ const Analytics = (() => {
                       text-transform:uppercase;letter-spacing:.08em;margin:0 0 .5rem">
               ${label}
             </p>
-            <p style="font-size:1.5rem;font-weight:700;color:#f1f5f9;margin:0;line-height:1.2;
+            <p style="font-size:1.5rem;font-weight:700;color:${valueColor};margin:0;line-height:1.2;
                       word-break:break-all">
               ${value}
             </p>
           </div>
           <div style="width:2.25rem;height:2.25rem;border-radius:.5rem;flex-shrink:0;
-                      background:rgba(99,102,241,.12);
+                      background:${iconBg};
                       display:flex;align-items:center;justify-content:center">
             <svg xmlns="http://www.w3.org/2000/svg"
                  style="width:1.1rem;height:1.1rem;color:${color}"
@@ -299,8 +314,14 @@ const Analytics = (() => {
     (data.byDay || []).forEach(function(row) { dataMap[row.date] = row; });
 
     var labels   = allDates.map(function(dt) { return formatDateLabel(dt, days); });
-    var revenues = allDates.map(function(dt) { return (dataMap[dt] && dataMap[dt].revenue)  || 0; });
-    var counts   = allDates.map(function(dt) { return (dataMap[dt] && dataMap[dt].count)    || 0; });
+    var revenues = allDates.map(function(dt) { return (dataMap[dt] && dataMap[dt].revenue) || 0; });
+    var profits  = allDates.map(function(dt) {
+      var row  = dataMap[dt];
+      var rev  = (row && row.revenue) || 0;
+      var cost = (row && row.cost)    || 0;
+      return rev - cost;
+    });
+    var counts   = allDates.map(function(dt) { return (dataMap[dt] && dataMap[dt].count) || 0; });
 
     _chartInstance = new Chart(canvas, {
       type: 'bar',
@@ -308,13 +329,22 @@ const Analytics = (() => {
         labels: labels,
         datasets: [
           {
-            label:           'Ingresos',
+            label:           'Ingresos Brutos',
             data:            revenues,
-            backgroundColor: 'rgba(99,102,241,.65)',
+            backgroundColor: 'rgba(99,102,241,.55)',
             borderColor:     '#6366f1',
             borderWidth:     1,
             borderRadius:    3,
             hoverBackgroundColor: '#818cf8',
+          },
+          {
+            label:           'Ganancia Neta',
+            data:            profits,
+            backgroundColor: 'rgba(16,185,129,.55)',
+            borderColor:     '#10b981',
+            borderWidth:     1,
+            borderRadius:    3,
+            hoverBackgroundColor: '#34d399',
           },
         ],
       },
@@ -323,7 +353,15 @@ const Analytics = (() => {
         maintainAspectRatio: false,
         interaction:         { mode: 'index', intersect: false },
         plugins: {
-          legend: { display: false },
+          legend: {
+            display: true,
+            labels: {
+              color:    '#94a3b8',
+              font:     { size: 11 },
+              boxWidth: 10,
+              padding:  14,
+            },
+          },
           tooltip: {
             backgroundColor: '#1e293b',
             borderColor:     '#334155',
@@ -333,9 +371,11 @@ const Analytics = (() => {
             padding:         10,
             callbacks: {
               label: function(ctx) {
-                return ' Ingresos: $' + ctx.parsed.y.toLocaleString('es-CL');
+                var sym = ctx.dataset.label === 'Ganancia Neta' ? '📈 ' : '💰 ';
+                return ' ' + sym + ctx.dataset.label + ': $' + ctx.parsed.y.toLocaleString('es-CL');
               },
               afterLabel: function(ctx) {
+                if (ctx.datasetIndex !== 0) return '';
                 var c = counts[ctx.dataIndex];
                 if (!c) return '';
                 return ' ' + c + ' transacción' + (c > 1 ? 'es' : '');
