@@ -171,15 +171,15 @@ const App = (() => {
             </div>
             <h1 style="font-size:clamp(2rem,4vw,3.125rem);font-weight:800;line-height:1.13;
                        color:#f1f5f9;margin-bottom:1.25rem;letter-spacing:-.025em">
-              Potencia tu Tienda de<br>
+              Centraliza tu Negocio<br>
               <span style="background:linear-gradient(135deg,#818cf8 10%,#c4b5fd 90%);
                            -webkit-background-clip:text;-webkit-text-fill-color:transparent;
-                           background-clip:text">WhatsApp</span>
+                           background-clip:text">E-commerce</span>
               con un Inventario Inteligente
             </h1>
             <p style="font-size:1rem;color:#94a3b8;line-height:1.75;margin-bottom:2rem;max-width:500px">
-              Gestiona productos, controla el stock en tiempo real y recibe pedidos
-              profesionales por WhatsApp, todo desde un panel premium.
+              Controla categorías, productos y stock en tiempo real. Unifica tus pedidos
+              desde catálogos web, WhatsApp o tu propia tienda con nuestro panel premium.
             </p>
             <button id="hero-cta-btn"
               style="display:inline-flex;align-items:center;gap:.625rem;
@@ -198,7 +198,7 @@ const App = (() => {
               ${[
                 'Stock en tiempo real — nunca vendas lo que ya no tienes',
                 'Catálogo público listo en segundos',
-                'Pedidos unificados directamente en tu WhatsApp',
+                'Pedidos omnicanal unificados (Catálogo Web, WhatsApp)',
               ].map(t => `
                 <div style="display:flex;align-items:center;gap:.625rem">
                   <div style="width:1.25rem;height:1.25rem;border-radius:50%;flex-shrink:0;
@@ -414,8 +414,8 @@ const App = (() => {
               {
                 path: 'M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z',
                 color: '#22c55e', bg: 'rgba(34,197,94,.1)',
-                title: 'Pedidos Profesionales',
-                desc: 'Recibe pedidos claros y unificados directamente en tu chat de WhatsApp.',
+                title: 'Ventas Centralizadas',
+                desc: 'Gestiona y unifica pedidos claros de múltiples canales de venta, incluyendo WhatsApp, en una sola interfaz.',
               },
               {
                 path: 'M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1',
