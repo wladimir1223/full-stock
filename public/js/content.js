@@ -409,14 +409,18 @@ const Content = (() => {
       .filter(f => isImageField(f))
       .forEach(f => bindImageWidget(wrapper, f.key, item?.[f.key] ?? ''));
 
-    // ── Calculadora de ganancia en tiempo real ─────────────────────────────
+    // ── Calculadora de ganancia + sanitización defensiva (sin negativos) ──────
+    // updateProfit se declara aquí para que los listeners de sanitización
+    // también puedan llamarla sin depender del scope del bloque hasPrecio.
+    let updateProfit = null;
+
     if (hasPrecio) {
       const pvEl  = wrapper.querySelector(`#field-${precioField.key}`);
       const pcEl  = wrapper.querySelector('#precio-costo');
       const indEl = wrapper.querySelector('#profit-indicator');
       const valEl = wrapper.querySelector('#profit-value');
 
-      function updateProfit() {
+      updateProfit = function () {
         const pv  = parseFloat(pvEl  ? pvEl.value  : 0) || 0;
         const pc  = parseFloat(pcEl  ? pcEl.value  : 0) || 0;
         const gan = pv - pc;
@@ -431,12 +435,26 @@ const Content = (() => {
           indEl.style.borderColor = neg ? '#7f1d1d' : '#1e293b';
           indEl.style.background  = neg ? 'rgba(127,29,29,.12)' : '#0f172a';
         }
-      }
+      };
 
       if (pvEl) pvEl.addEventListener('input', updateProfit);
       if (pcEl) pcEl.addEventListener('input', updateProfit);
       updateProfit(); // inicializa con los valores actuales
     }
+
+    // ── Sanitización defensiva — intercepta en tiempo real ──────────────────
+    // Aplica a TODOS los inputs numéricos del formulario (campos del esquema
+    // + #precio-costo). Si el usuario escribe "-" o pega un valor negativo,
+    // el campo se restablece a "0" al instante y se recalcula la ganancia.
+    wrapper.querySelectorAll('input[type="number"]').forEach(function (inp) {
+      inp.addEventListener('input', function () {
+        const v = parseFloat(this.value);
+        if (!isNaN(v) && v < 0) {
+          this.value = '0';
+          if (updateProfit) updateProfit();
+        }
+      });
+    });
 
     wrapper.querySelector('#cancel-form-btn').addEventListener('click', () => {
       wrapper.classList.add('hidden');
@@ -468,12 +486,13 @@ const Content = (() => {
         break;
 
       case 'number': {
-        // Stock: enteros ≥ 0. Otros campos numéricos: paso libre.
+        // Stock: enteros ≥ 0. Otros campos numéricos: decimal libre, también ≥ 0.
+        // min="0" en todos impide que el navegador acepte negativos de forma nativa.
         const isStock = (field.key === 'stock');
         inner = `
           <input type="number" id="${baseId}" class="input-field w-full"
             value="${escHtml(String(value))}" placeholder="${field.label}"
-            ${isStock ? 'min="0" step="1"' : 'step="any"'}/>
+            min="0" ${isStock ? 'step="1"' : 'step="any"'}/>
         `;
         break;
       }
@@ -672,9 +691,13 @@ const Content = (() => {
 
       if (f.type === 'number') {
         const num = Number(val);
-        // Validación frontend: stock no puede ser negativo
-        if (f.key === 'stock' && num < 0) {
-          errors.push('El stock no puede ser un número negativo.');
+        // Validación defensiva: ningún campo numérico acepta negativos
+        if (num < 0) {
+          errors.push(
+            f.key === 'stock'
+              ? 'El stock no puede ser un número negativo.'
+              : `"${f.label}" no puede ser un número negativo.`
+          );
           continue;
         }
         payload[f.key] = num;
