@@ -25,6 +25,10 @@ const userSchema = new mongoose.Schema(
     plan:         { type: String, enum: ['basic', 'pro', 'full'], default: 'basic' },
     // Número WhatsApp en formato internacional sin '+' (ej: "56912345678")
     whatsapp:     { type: String, default: '' },
+    // Recuperación de contraseña — token temporal + expiración (1 hora).
+    // Se setean al solicitar /api/auth/forgot-password y se limpian al resetear.
+    resetPasswordToken:   { type: String },
+    resetPasswordExpires: { type: Date },
   },
   {
     timestamps: true,          // createdAt + updatedAt automáticos

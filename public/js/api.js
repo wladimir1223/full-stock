@@ -126,9 +126,17 @@ var API = {
       Auth.clear();
       return Promise.resolve({ success: true });
     },
-    // Solicitud de recuperación de contraseña
+    // Solicitud de recuperación de contraseña (legacy — siempre success)
     recover: function(email) {
       return request('POST', '/auth/recover', { email: email });
+    },
+    // Flujo real de recuperación: genera token temporal (1h) y envía correo
+    forgotPassword: function(email) {
+      return request('POST', '/api/auth/forgot-password', { email: email });
+    },
+    // Reseteo con token: establece la nueva contraseña
+    resetPassword: function(token, password) {
+      return request('POST', '/api/auth/reset-password', { token: token, password: password });
     },
   },
   collections: {

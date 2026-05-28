@@ -32,6 +32,7 @@ const ACTIONS = {
   // Auth
   USER_REGISTER:     'USER_REGISTER',
   USER_LOGIN:        'USER_LOGIN',
+  PASSWORD_RESET:    'PASSWORD_RESET',
 };
 
 // ─── Schema ───────────────────────────────────────────────────────────────────

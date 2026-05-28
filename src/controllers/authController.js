@@ -13,6 +13,7 @@ const crypto                    = require('crypto');
 const userDb                    = require('../db/userDb');
 const { signJWT }               = require('../middleware/auth');
 const { logActivity, ACTIONS }  = require('../models/ActivityLog');
+const { sendPasswordResetEmail } = require('../utils/mailer');
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -162,4 +163,83 @@ async function recover(req, res) {
   }
 }
 
-module.exports = { register, login, recover };
+// ─── POST /api/auth/forgot-password ───────────────────────────────────────────
+// Genera un token temporal (1h) y envía el correo de reseteo.
+// SIEMPRE responde con un mensaje genérico para evitar enumeración de usuarios.
+
+const GENERIC_FORGOT_MSG = 'Si el correo existe, recibirás un enlace para restablecer tu contraseña.';
+
+async function forgotPassword(req, res) {
+  try {
+    const { email } = req.body;
+
+    if (!email || String(email).trim() === '')
+      return res.status(400).json({ success: false, message: 'El email es obligatorio.' });
+
+    const normalizedEmail = String(email).toLowerCase().trim();
+    const user            = await userDb.findByEmail(normalizedEmail);
+
+    // Solo generamos token + correo si el usuario existe; en cualquier caso
+    // la respuesta es idéntica (anti-enumeración).
+    if (user) {
+      const token   = crypto.randomBytes(20).toString('hex');
+      const expires = new Date(Date.now() + 3600000); // 1 hora
+
+      await userDb.setResetToken(user.id, token, expires);
+
+      // Base URL: APP_URL si está definida, si no se deriva del request.
+      const baseUrl  = (process.env.APP_URL || `${req.protocol}://${req.get('host')}`).replace(/\/$/, '');
+      const resetUrl = `${baseUrl}/reset-password.html?token=${token}`;
+
+      try {
+        await sendPasswordResetEmail(user.email, resetUrl);
+      } catch (mailErr) {
+        // No revelamos el fallo al cliente, pero lo registramos en consola.
+        console.error('[forgotPassword] Error al enviar correo:', mailErr.message);
+      }
+    }
+
+    // Pequeño delay uniforme para mitigar ataques de temporización.
+    return setTimeout(() => res.json({ success: true, message: GENERIC_FORGOT_MSG }), 300);
+
+  } catch (err) {
+    console.error('[forgotPassword]', err);
+    res.status(500).json({ success: false, message: 'Error interno del servidor.' });
+  }
+}
+
+// ─── POST /api/auth/reset-password ─────────────────────────────────────────────
+// Valida token + expiración, encripta la nueva contraseña y limpia el token.
+
+async function resetPassword(req, res) {
+  try {
+    const { token, password } = req.body;
+
+    if (!token || String(token).trim() === '')
+      return res.status(400).json({ success: false, message: 'Token de recuperación no proporcionado.' });
+    if (!password)
+      return res.status(400).json({ success: false, message: 'La nueva contraseña es obligatoria.' });
+    if (password.length < 8)
+      return res.status(400).json({ success: false, message: 'La contraseña debe tener al menos 8 caracteres.' });
+
+    const user = await userDb.findByResetToken(String(token).trim());
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        message: 'El enlace de recuperación es inválido o ha expirado. Solicita uno nuevo.',
+      });
+    }
+
+    // Reutiliza el mismo hashing que el registro (scrypt) y limpia el token.
+    await userDb.updatePassword(user.id, hashPassword(password));
+
+    logActivity(user, ACTIONS.PASSWORD_RESET, `Contraseña restablecida: ${user.email}`);
+    return res.json({ success: true, message: 'Tu contraseña se actualizó correctamente. Ya puedes iniciar sesión.' });
+
+  } catch (err) {
+    console.error('[resetPassword]', err);
+    res.status(500).json({ success: false, message: 'Error interno del servidor.' });
+  }
+}
+
+module.exports = { register, login, recover, forgotPassword, resetPassword };

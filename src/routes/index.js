@@ -60,6 +60,10 @@ router.post('/auth/register', authLimiter, authCtrl.register);
 router.post('/auth/login',    authLimiter, authCtrl.login);
 router.post('/auth/recover',  authCtrl.recover);   // sin límite estricto (siempre responde success)
 
+// Recuperación de contraseña — flujo de token temporal (1h) + email
+router.post('/api/auth/forgot-password', authCtrl.forgotPassword); // genera token y envía correo
+router.post('/api/auth/reset-password',  authCtrl.resetPassword);  // valida token y actualiza contraseña
+
 // ════════════════════════════════════════════════════════════════
 // API PÚBLICA — Consumo externo por tenant_slug
 // Estas rutas alimentan los cliente-web.html de cada negocio.

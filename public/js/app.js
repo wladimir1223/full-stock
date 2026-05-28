@@ -721,7 +721,7 @@ const App = (() => {
       forgotError.style.display = 'none';
       forgotSubmit.disabled     = true;
       forgotSubmit.textContent  = 'Enviando…';
-      try { await API.auth.recover(email); } catch (_) { /* siempre mostramos éxito */ }
+      try { await API.auth.forgotPassword(email); } catch (_) { /* siempre mostramos éxito (anti-enumeración) */ }
       cerrarForgot();
       showToast('Si el correo está registrado, recibirás las instrucciones en breve.', 'success');
       forgotSubmit.disabled    = false;
