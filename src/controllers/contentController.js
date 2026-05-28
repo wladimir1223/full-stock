@@ -90,6 +90,59 @@ function isValidId(id) {
   return mongoose.Types.ObjectId.isValid(id);
 }
 
+/** Normaliza un nombre a slug (idéntico al de collectionsController). */
+function toSlug(name) {
+  return String(name)
+    .toLowerCase().trim()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/\s+/g,        '-')
+    .replace(/[^a-z0-9-]/g, '')
+    .replace(/-+/g,         '-')
+    .replace(/^-|-$/g,      '');
+}
+
+/** Saneamiento numérico defensivo: vacío, NaN o negativo → 0. */
+function cleanNum(v) {
+  const n = Number(v);
+  return (!isFinite(n) || n < 0) ? 0 : n;
+}
+
+// Esquema estándar para categorías auto-creadas durante la importación.
+const DEFAULT_IMPORT_FIELDS = [
+  { key: 'nombre',      label: 'Nombre',      type: 'short_text' },
+  { key: 'precio',      label: 'Precio',      type: 'number'     },
+  { key: 'stock',       label: 'Stock',       type: 'number'     },
+  { key: 'descripcion', label: 'Descripción', type: 'long_text'  },
+  { key: 'imagen',      label: 'Imagen',      type: 'image_url'  },
+];
+
+/**
+ * Mapea un producto normalizado { nombre, precioVenta, precioCosto, stock, descripcion }
+ * a un objeto `data` alineado con el esquema (fields) de la colección de destino.
+ * Campos no reconocidos se rellenan con '' (texto) o 0 (número).
+ */
+function buildItemData(fields, prod) {
+  const data = {};
+  for (const f of fields) {
+    const k = f.key;
+    if (['nombre', 'name', 'titulo', 'title', 'producto', 'articulo'].includes(k)) {
+      data[k] = prod.nombre;
+    } else if (['precio', 'price', 'venta', 'valor', 'importe', 'pvp'].includes(k)) {
+      data[k] = prod.precioVenta;
+    } else if (k === 'stock' || ['cantidad', 'unidades'].includes(k)) {
+      data[k] = Math.floor(prod.stock);
+    } else if (['descripcion', 'description', 'detalle', 'desc'].includes(k)) {
+      data[k] = prod.descripcion || '';
+    } else if (f.type === 'number') {
+      data[k] = 0;
+    } else {
+      data[k] = '';
+    }
+  }
+  if (prod.precioCosto > 0) data.precioCosto = prod.precioCosto;
+  return data;
+}
+
 // ─── GET /admin/collections/:slug/items ───────────────────────────────────────
 
 async function listItems(req, res) {
@@ -339,4 +392,120 @@ async function sellItem(req, res) {
   }
 }
 
-module.exports = { listItems, getItem, createItem, updateItem, deleteItem, sellItem };
+// ─── POST /api/products/bulk-import ───────────────────────────────────────────
+//
+// Importación masiva. Recibe un lote de productos ya normalizados desde el
+// frontend y los inserta en una sola operación (insertMany). Crea
+// automáticamente las categorías (colecciones) que no existan.
+//
+// Body: { products: [ { nombre, categoria, precioVenta, precioCosto, stock, descripcion }, … ] }
+//
+// Respuesta:
+//   { success, imported, categoriesCreated, skipped, message }
+
+async function bulkImport(req, res) {
+  try {
+    const products = Array.isArray(req.body.products) ? req.body.products : null;
+    if (!products || products.length === 0) {
+      return res.status(400).json({ success: false, message: 'No se recibió ningún producto para importar.' });
+    }
+    if (products.length > 2000) {
+      return res.status(400).json({ success: false, message: 'Máximo 2000 productos por importación.' });
+    }
+
+    // ── Validez mínima: descartar filas sin nombre ──────────────────────────
+    const valid   = products.filter(p => String(p && p.nombre || '').trim() !== '');
+    const skipped = products.length - valid.length;
+    if (valid.length === 0) {
+      return res.status(400).json({ success: false, message: 'Ninguna fila tiene un nombre válido.' });
+    }
+
+    // ── Plan limit (cuenta actual + lote ≤ límite) ──────────────────────────
+    const user    = await User.findById(req.tenant.id).select('plan').lean();
+    const plan    = (user && user.plan) || 'basic';
+    const limit   = PLAN_LIMITS[plan] ?? PLAN_LIMITS.basic;
+    const current = await Item.countDocuments({ tenantId: req.tenant.id });
+    if (current + valid.length > limit) {
+      return res.status(403).json({
+        success: false,
+        code:    'PLAN_LIMIT_REACHED',
+        plan, limit, current,
+        message: `Límite de plan alcanzado: tu plan "${plan}" permite hasta ${limit} productos. ` +
+                 `Tienes ${current} y el archivo añadiría ${valid.length}.`,
+      });
+    }
+
+    // ── Precargar colecciones existentes del tenant ─────────────────────────
+    const existing = await Collection.find({ tenantId: req.tenant.id });
+    const bySlug = {};   // slug → doc
+    const byName = {};   // nombre(lower) → doc
+    existing.forEach(c => {
+      bySlug[c.slug] = c;
+      byName[c.name.toLowerCase().trim()] = c;
+    });
+
+    // ── Resolver / auto-crear categorías del lote ───────────────────────────
+    let categoriesCreated = 0;
+    const distinctCats = [...new Set(
+      valid.map(p => (String(p.categoria || '').trim() || 'Importados'))
+    )];
+
+    for (const catName of distinctCats) {
+      const lower = catName.toLowerCase().trim();
+      if (byName[lower]) continue;   // ya existe
+
+      // Generar slug único (entre existentes + recién creados)
+      let base = toSlug(catName) || 'categoria';
+      let slug = base, n = 2;
+      while (bySlug[slug]) { slug = base + '-' + n; n++; }
+
+      const created = await Collection.create({
+        tenantId: req.tenant.id,
+        name:     stripHtml(catName),
+        slug,
+        fields:   DEFAULT_IMPORT_FIELDS,
+      });
+      bySlug[created.slug]               = created;
+      byName[lower]                      = created;
+      categoriesCreated++;
+    }
+
+    // ── Construir documentos de items con saneamiento defensivo ─────────────
+    const docs = valid.map(p => {
+      const catName = (String(p.categoria || '').trim() || 'Importados');
+      const col     = byName[catName.toLowerCase().trim()];
+      const prod = {
+        nombre:      stripHtml(String(p.nombre || '')).slice(0, 200),
+        precioVenta: cleanNum(p.precioVenta),
+        precioCosto: cleanNum(p.precioCosto),
+        stock:       cleanNum(p.stock),
+        descripcion: stripHtml(String(p.descripcion || '')).slice(0, 2000),
+      };
+      return {
+        tenantId:       req.tenant.id,
+        collectionSlug: col.slug,
+        data:           buildItemData(col.fields, prod),
+      };
+    });
+
+    // ── Inserción masiva en una sola operación ──────────────────────────────
+    const inserted = await Item.insertMany(docs, { ordered: false });
+
+    logActivity(req.tenant, ACTIONS.CREATE_ITEM,
+      `Importación masiva: ${inserted.length} producto(s) y ${categoriesCreated} categoría(s) nueva(s).`);
+
+    res.status(201).json({
+      success:           true,
+      imported:          inserted.length,
+      categoriesCreated,
+      skipped,
+      message: `Se importaron ${inserted.length} productos y se crearon ${categoriesCreated} categorías nuevas.`,
+    });
+
+  } catch (err) {
+    console.error('[bulkImport]', err);
+    res.status(500).json({ success: false, message: 'Error durante la importación masiva.' });
+  }
+}
+
+module.exports = { listItems, getItem, createItem, updateItem, deleteItem, sellItem, bulkImport };

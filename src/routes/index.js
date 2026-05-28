@@ -435,6 +435,9 @@ router.delete('/admin/collections/:slug/items/:id',        requireAuth, contCtrl
 // POST /admin/collections/:slug/items/:id/sell — registra venta y descuenta stock
 router.post('/admin/collections/:slug/items/:id/sell',     requireAuth, contCtrl.sellItem);
 
+// POST /api/products/bulk-import — importación masiva (auto-crea categorías)
+router.post('/api/products/bulk-import',                   requireAuth, contCtrl.bulkImport);
+
 // ════════════════════════════════════════════════════════════════
 // ADMIN — Upload de imágenes (protegido)
 // ════════════════════════════════════════════════════════════════

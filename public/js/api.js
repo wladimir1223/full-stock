@@ -85,7 +85,9 @@ const Auth = {
 async function request(method, endpoint, body, isFormData) {
   var headers = {};
 
-  if (endpoint.startsWith('/admin') || endpoint.startsWith('/api/v1/superadmin')) {
+  if (endpoint.startsWith('/admin') ||
+      endpoint.startsWith('/api/v1/superadmin') ||
+      endpoint.startsWith('/api/products')) {
     var token = Auth.getToken();
     if (token) headers['Authorization'] = 'Bearer ' + token;
   }
@@ -145,6 +147,12 @@ var API = {
     sell:   function(slug, id, quantity)  { return request('POST',   '/admin/collections/' + slug + '/items/' + id + '/sell', { quantity: quantity }); },
   },
   upload: function(formData) { return request('POST', '/admin/upload', formData, true); },
+  products: {
+    // Importación masiva: envía todo el lote en una sola petición.
+    bulkImport: function(products) {
+      return request('POST', '/api/products/bulk-import', { products: products });
+    },
+  },
   superadmin: {
     logs: function(limit, tenant) {
       var url = '/api/v1/superadmin/logs?limit=' + (limit || 100);

@@ -997,26 +997,37 @@ const Content = (() => {
   //
   // Flujo: openImportExportModal → doExportCSV / doImport
   //   doImport: lee CSV (parseCSVNative) o XLSX (SheetJS lazy-loaded),
-  //             mapea cabeceras con mapImportHeaders, crea categorías faltantes,
-  //             sanitiza negativos y llama a API.items.create por cada fila.
+  //             mapea cabeceras con mapImportHeaders, sanea los valores y
+  //             envía TODO el lote en UNA sola petición a /api/products/bulk-import.
+  //             El backend auto-crea las categorías faltantes e inserta con
+  //             insertMany (una única transacción).
   //
   // CSP-safe: cero inline handlers — toda la lógica via addEventListener.
 
-  // ── Mapa de aliases para auto-mapeo inteligente de cabeceras ─────────────
+  // ── Diccionario de sinónimos para auto-mapeo inteligente de cabeceras ────
+  // Las claves son los campos normalizados que entiende el backend.
   const IMPORT_ALIASES = {
-    nombre:      ['nombre','name','producto','title','titulo','item','articulo','product'],
-    stock:       ['stock','unidades','cantidad','qty','quantity','existencias','inventario'],
-    precio:      ['precio','precioventa','venta','price','pvp','valor','importe','saleprice'],
-    precioCosto: ['preciocosto','costo','compra','cost','coste','buyprice','purchaseprice'],
-    categoria:   ['categoria','category','coleccion','collection','tipo','type','grupo','group'],
-    descripcion: ['descripcion','description','detalle','detail','desc','notes','notas'],
+    nombre:      ['nombre','producto','title','name','articulo','item'],
+    categoria:   ['categoria','category','grupo','coleccion','collection','tipo'],
+    precioCosto: ['costo','preciocosto','cost','compra','coste','buyprice'],
+    precioVenta: ['precio','precioventa','price','venta','valor','pvp','importe'],
+    stock:       ['stock','cantidad','unidades','quantity','qty','existencias'],
+    descripcion: ['descripcion','description','detalle','desc','notas'],
   };
+
+  // Normaliza una cabecera: minúsculas, sin acentos, sin espacios/guiones.
+  // "Precio Costo" → "preciocosto" · "Categoría" → "categoria"
+  function normHeader(h) {
+    return String(h).toLowerCase().trim()
+      .normalize('NFD').replace(/[̀-ͯ]/g, '')   // elimina acentos
+      .replace(/[\s_-]+/g, '')
+      .replace(/[^a-z0-9]/g, '');
+  }
 
   function mapImportHeaders(headers) {
     const map = {};
     headers.forEach((h, idx) => {
-      const norm = String(h).toLowerCase().trim()
-        .replace(/[\s_-]+/g, '').replace(/[^a-z0-9]/g, '');
+      const norm = normHeader(h);
       for (const [field, aliases] of Object.entries(IMPORT_ALIASES)) {
         if (!(field in map) && aliases.includes(norm)) map[field] = idx;
       }
@@ -1083,10 +1094,10 @@ const Content = (() => {
     setTimeout(() => URL.revokeObjectURL(url), 5000);
   }
 
-  // ── Importar: parsea, mapea, crea categorías, guarda productos ───────────
+  // ── Importar: parsea → mapea → sanea → UNA petición bulk al backend ──────
   async function doImport(file, container, { onProgress, onDone, onError }) {
     try {
-      onProgress('Leyendo archivo…', 5);
+      onProgress('Leyendo archivo…', 10);
       const ext = file.name.split('.').pop().toLowerCase();
       let rows  = [];
 
@@ -1104,117 +1115,71 @@ const Content = (() => {
         onError('El archivo está vacío o solo tiene encabezados.'); return;
       }
 
-      onProgress('Mapeando columnas…', 10);
+      // ── Auto-detección de columnas por sinónimos ──────────────────────────
+      onProgress('Detectando columnas…', 25);
       const headers  = rows[0].map(h => String(h));
       const fieldMap = mapImportHeaders(headers);
 
       if (!('nombre' in fieldMap)) {
-        onError('No se encontró la columna "Nombre" (o equivalente) en el archivo.'); return;
+        onError('No se encontró la columna "Nombre" (o equivalente: Producto, Title…).'); return;
       }
 
-      onProgress('Cargando categorías existentes…', 15);
-      const { data: existingCols } = await API.collections.list();
-      const colByName = {};
-      existingCols.forEach(c => { colByName[c.name.toLowerCase().trim()] = c; });
+      // ── Saneamiento defensivo en cliente (NaN/vacío/negativo → 0) ─────────
+      onProgress('Saneando datos…', 45);
+      const clean = v => { const n = Number(v); return (!isFinite(n) || n < 0) ? 0 : n; };
+      const cell  = (row, key) => (fieldMap[key] !== undefined ? row[fieldMap[key]] : '');
 
+      const products = [];
       const dataRows = rows.slice(1);
-      const total    = dataRows.length;
-      let imported = 0, skipped = 0, newCats = 0;
-      const warnings = [];
-
-      for (let i = 0; i < dataRows.length; i++) {
-        const row = dataRows[i];
-        onProgress(
-          `Importando fila ${i + 1} de ${total}…`,
-          Math.round(20 + (i / total) * 74)
-        );
-
-        const nombre = fieldMap.nombre !== undefined
-          ? String(row[fieldMap.nombre] || '').trim() : '';
-        if (!nombre) { skipped++; continue; }
-
-        // Sanitización defensiva: NaN → 0, negativos → 0
-        let precio      = Number(fieldMap.precio      !== undefined ? row[fieldMap.precio]      : 0);
-        let precioCosto = Number(fieldMap.precioCosto !== undefined ? row[fieldMap.precioCosto] : 0);
-        let stock       = Number(fieldMap.stock       !== undefined ? row[fieldMap.stock]       : 0);
-        if (!isFinite(precio))      precio      = 0;
-        if (!isFinite(precioCosto)) precioCosto = 0;
-        if (!isFinite(stock))       stock       = 0;
-        if (precio      < 0) { warnings.push(`Fila ${i + 2}: precio negativo → 0`);      precio      = 0; }
-        if (precioCosto < 0) { warnings.push(`Fila ${i + 2}: costo negativo → 0`);       precioCosto = 0; }
-        if (stock       < 0) { warnings.push(`Fila ${i + 2}: stock negativo → 0`);       stock       = 0; }
-
-        // Resolución / auto-creación de categoría
-        const catName = fieldMap.categoria !== undefined
-          ? (String(row[fieldMap.categoria] || '').trim() || 'Importados')
-          : 'Importados';
-        const catKey  = catName.toLowerCase().trim();
-        let col       = colByName[catKey];
-
-        if (!col) {
-          try {
-            const res = await API.collections.create({
-              name: catName,
-              fields: [
-                { key: 'nombre',      label: 'Nombre',      type: 'short_text' },
-                { key: 'precio',      label: 'Precio',      type: 'number'     },
-                { key: 'stock',       label: 'Stock',       type: 'number'     },
-                { key: 'descripcion', label: 'Descripción', type: 'long_text'  },
-                { key: 'imagen',      label: 'Imagen',      type: 'image_url'  },
-              ],
-            });
-            col = res.data;
-            colByName[catKey] = col;
-            newCats++;
-          } catch (e) {
-            warnings.push(`No se pudo crear categoría "${catName}": ${e.message || e}`);
-            skipped++; continue;
-          }
-        }
-
-        // Payload alineado con el esquema de la colección de destino
-        const payload = {};
-        col.fields.forEach(f => {
-          if (['nombre','name','titulo','title'].includes(f.key))                { payload[f.key] = nombre; }
-          else if (['precio','price','valor'].includes(f.key))                   { payload[f.key] = precio; }
-          else if (f.key === 'stock')                                             { payload[f.key] = stock; }
-          else if (['descripcion','description','desc'].includes(f.key))         {
-            payload[f.key] = fieldMap.descripcion !== undefined
-              ? String(row[fieldMap.descripcion] || '').trim() : '';
-          }
-          else if (f.type === 'number')  { payload[f.key] = 0; }
-          else                           { payload[f.key] = ''; }
+      for (const row of dataRows) {
+        const nombre = String(cell(row, 'nombre') || '').trim();
+        if (!nombre) continue;   // se omite (sin nombre)
+        products.push({
+          nombre:      nombre,
+          categoria:   String(cell(row, 'categoria')   || '').trim(),
+          precioVenta: clean(cell(row, 'precioVenta')),
+          precioCosto: clean(cell(row, 'precioCosto')),
+          stock:       clean(cell(row, 'stock')),
+          descripcion: String(cell(row, 'descripcion') || '').trim(),
         });
-        if (precioCosto > 0) payload.precioCosto = precioCosto;
-
-        try {
-          await API.items.create(col.slug, payload);
-          imported++;
-        } catch (e) {
-          warnings.push(`Fila ${i + 2} "${nombre}": ${e.message || 'Error al crear.'}`);
-          skipped++;
-        }
       }
 
-      // Refrescar la tabla si hay una colección activa visible
-      onProgress('Actualizando vista…', 97);
+      if (products.length === 0) {
+        onError('No se encontró ninguna fila con un nombre válido.'); return;
+      }
+
+      const localSkipped = dataRows.length - products.length;
+
+      // ── UNA sola petición: el backend crea categorías + insertMany ────────
+      onProgress(`Enviando ${products.length} productos al servidor…`, 65);
+      const res = await API.products.bulkImport(products);
+
+      // ── Refrescar la tabla si hay una colección activa visible ────────────
+      onProgress('Actualizando vista…', 95);
       if (activeSlug) {
         try { await renderTable(container, {}); } catch (_) {}
       }
 
-      onDone({ imported, skipped, newCats, warnings });
+      onDone({
+        imported:          res.imported          || 0,
+        categoriesCreated: res.categoriesCreated || 0,
+        skipped:           localSkipped + (res.skipped || 0),
+      });
 
     } catch (err) {
-      onError(err.message || 'Error inesperado durante la importación.');
+      const msg = (err && err.message)
+        ? err.message
+        : (err && Array.isArray(err.errors) ? err.errors.join(', ') : 'Error inesperado durante la importación.');
+      onError(msg);
     }
   }
 
   // ── Modal principal Importar / Exportar ───────────────────────────────────
   function openImportExportModal(container) {
-    document.getElementById('ie-modal')?.remove();
+    document.getElementById('modal-import-export')?.remove();
 
     const overlay = document.createElement('div');
-    overlay.id    = 'ie-modal';
+    overlay.id    = 'modal-import-export';
     overlay.style.cssText =
       'position:fixed;inset:0;z-index:9998;display:flex;align-items:center;' +
       'justify-content:center;padding:1rem;background:rgba(0,0,0,.75);' +
@@ -1506,9 +1471,34 @@ const Content = (() => {
     importBtn.addEventListener('mouseout',  () => { importBtn.style.opacity = '1'; });
     importBtn.addEventListener('click', async () => {
       if (!selectedFile) return;
-      importBtn.disabled         = true;
-      progressWrap.style.display = '';
-      resultEl.style.display     = 'none';
+
+      // Estado de carga: spinner + botón deshabilitado mientras el servidor
+      // procesa el lote (puede ser pesado: cientos de productos).
+      const importBtnHTML = importBtn.innerHTML;
+      importBtn.disabled  = true;
+      importBtn.innerHTML =
+        '<span style="display:inline-flex;align-items:center;gap:.5rem;justify-content:center">' +
+        '<span style="width:.95rem;height:.95rem;border:2px solid rgba(255,255,255,.4);' +
+        'border-top-color:#fff;border-radius:9999px;display:inline-block;' +
+        'animation:ieSpin .7s linear infinite"></span> Procesando lote…</span>';
+      // Keyframes inyectados una sola vez (CSP: <style> sin inline handlers)
+      if (!document.getElementById('ie-spin-style')) {
+        const st = document.createElement('style');
+        st.id = 'ie-spin-style';
+        st.textContent = '@keyframes ieSpin{to{transform:rotate(360deg)}}';
+        document.head.appendChild(st);
+      }
+      dropzone.style.pointerEvents = 'none';
+      dropzone.style.opacity       = '.6';
+      progressWrap.style.display   = '';
+      resultEl.style.display       = 'none';
+
+      function restoreBtn() {
+        importBtn.disabled           = false;
+        importBtn.innerHTML          = importBtnHTML;
+        dropzone.style.pointerEvents = '';
+        dropzone.style.opacity       = '1';
+      }
 
       await doImport(selectedFile, container, {
         onProgress(label, pct) {
@@ -1520,34 +1510,25 @@ const Content = (() => {
           progressBar.style.width = '100%';
           progressPct.textContent = '100%';
           progressLbl.textContent = '¡Completado!';
-          const hasW = res.warnings.length > 0;
           resultEl.innerHTML = `
-            <div style="background:${hasW ? 'rgba(15,23,42,.9)' : 'rgba(5,150,105,.08)'};
-                        border:1px solid ${hasW ? '#334155' : '#059669'};
+            <div style="background:rgba(5,150,105,.08);border:1px solid #059669;
                         border-radius:.625rem;padding:.875rem 1rem">
-              <p style="color:${hasW ? '#e2e8f0' : '#34d399'};font-weight:700;
-                         font-size:.875rem;margin:0 0 .3rem">
-                ${hasW ? '⚠️' : '✅'} Importación completada
+              <p style="color:#34d399;font-weight:700;font-size:.875rem;margin:0 0 .3rem">
+                ✅ ¡Éxito!
               </p>
-              <p style="color:#94a3b8;font-size:.8rem;margin:0 0 ${hasW ? '.375rem' : '0'}">
-                Se importaron <strong style="color:#f1f5f9">${res.imported}</strong> producto(s)${res.newCats > 0 ? `, se crearon <strong style="color:#a5b4fc">${res.newCats}</strong> categoría(s) nueva(s)` : ''}.${res.skipped > 0 ? ` <span style="color:#f59e0b">${res.skipped} fila(s) omitida(s).</span>` : ''}
+              <p style="color:#94a3b8;font-size:.8rem;margin:0;line-height:1.55">
+                Se han importado <strong style="color:#f1f5f9">${res.imported}</strong>
+                producto(s) y se crearon
+                <strong style="color:#a5b4fc">${res.categoriesCreated}</strong>
+                nueva(s) categoría(s) automáticamente.${res.skipped > 0
+                  ? ` <span style="color:#f59e0b">${res.skipped} fila(s) omitida(s) por falta de nombre.</span>`
+                  : ''}
               </p>
-              ${hasW ? `
-                <details style="margin-top:.25rem">
-                  <summary style="font-size:.72rem;color:#475569;cursor:pointer">
-                    ${res.warnings.length} ajuste(s) defensivo(s) aplicado(s) — ver detalle
-                  </summary>
-                  <ul style="margin:.4rem 0 0;padding-left:1.25rem;
-                              font-size:.7rem;color:#64748b;line-height:1.9">
-                    ${res.warnings.slice(0, 10).map(w => `<li>${escHtml(w)}</li>`).join('')}
-                    ${res.warnings.length > 10
-                      ? `<li style="color:#475569">…y ${res.warnings.length - 10} más.</li>` : ''}
-                  </ul>
-                </details>` : ''}
             </div>
           `;
           resultEl.style.display = '';
-          importBtn.disabled     = false;
+          App.showToast(`Importación completa: ${res.imported} productos.`, 'success');
+          restoreBtn();
         },
         onError(msg) {
           progressWrap.style.display = 'none';
@@ -1558,7 +1539,7 @@ const Content = (() => {
             </div>
           `;
           resultEl.style.display = '';
-          importBtn.disabled     = false;
+          restoreBtn();
         },
       });
     });
