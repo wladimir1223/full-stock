@@ -5,8 +5,9 @@
  *   · Carga Rápida (+1)  → PATCH /api/products/quick-scan (suma stock atómica)
  *   · Escanear y Editar  → GET  /api/products/by-barcode  + abre modal de edición
  *
- * Usa la API nativa `BarcodeDetector` cuando está disponible. Si el navegador
- * no la soporta, se ofrece una entrada manual de código como alternativa.
+ * Motor de escaneo: librería universal `html5-qrcode` (ZXing internamente).
+ * Funciona en iOS Safari, Android Chrome y escritorio — sin depender de la API
+ * nativa BarcodeDetector (no soportada en iOS).
  *
  * Seguridad estricta (Zero-Inline / CSP): TODA la lógica de eventos se enlaza
  * mediante addEventListener. No hay ningún handler inline en el HTML.
@@ -15,33 +16,25 @@
 (function () {
   'use strict';
 
-  // Formatos de código soportados por BarcodeDetector (los más comunes en retail).
-  const SUPPORTED_FORMATS = [
-    'ean_13', 'ean_8', 'upc_a', 'upc_e',
-    'code_128', 'code_39', 'code_93', 'itf', 'codabar', 'qr_code',
-  ];
-
   const FullStockScanner = {
     // ── Estado interno ─────────────────────────────────────────────────────────
-    video:        null,
-    stream:       null,
-    detector:     null,
-    rafId:        null,
-    running:      false,
+    reader:       null,          // instancia Html5Qrcode
+    readerEl:     null,          // <div id="reader">
+    started:      false,         // true mientras la cámara está activa
+    watchId:      null,          // intervalo que detecta desmontaje del panel
     mode:         'quick-add',   // 'quick-add' | 'scan-edit'
     scanCooldown: false,         // bloquea lecturas durante 1.5 s tras detectar
     lastCode:     null,
     audioCtx:     null,
     dom:          {},            // referencias a elementos del DOM
 
-    // ── init(): mapea el DOM, pide permisos de cámara y arranca el bucle ─────────
+    // ── init(): mapea el DOM, configura listeners y arranca la cámara ────────────
     async init(container) {
       // Detener cualquier sesión previa (p. ej. al re-renderizar el panel).
       this.stop();
 
       this.dom = {
         wrapper:   container.querySelector('#fullstock-camera-stream'),
-        video:     container.querySelector('#scanner-video'),
         toggle:    container.querySelector('#scanner-mode-toggle'),
         label:     container.querySelector('#scanner-mode-label'),
         status:    container.querySelector('#scanner-status'),
@@ -49,7 +42,7 @@
         manualIn:  container.querySelector('#scanner-manual-input'),
         manualBtn: container.querySelector('#scanner-manual-btn'),
       };
-      this.video = this.dom.video;
+      this.readerEl = container.querySelector('#reader');
 
       // ── Toggle de modo (Carga Rápida ⇄ Escanear y Editar) ─────────────────────
       if (this.dom.toggle) {
@@ -60,7 +53,7 @@
       }
       this.updateModeLabel();
 
-      // ── Entrada manual (fallback / utilidad para teclados-lectores USB) ──────
+      // ── Entrada manual (fallback / lectores USB tipo teclado) ─────────────────
       if (this.dom.manualBtn && this.dom.manualIn) {
         const submitManual = () => {
           const code = (this.dom.manualIn.value || '').trim();
@@ -76,88 +69,54 @@
         });
       }
 
-      // ── Comprobar soporte de getUserMedia ────────────────────────────────────
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        this.setStatus('Tu navegador no permite acceder a la cámara. Usa la entrada manual.', 'error');
+      // ── Comprobar que la librería esté cargada ────────────────────────────────
+      if (typeof window.Html5Qrcode === 'undefined') {
+        this.setStatus('No se pudo cargar el motor de escaneo. Revisa tu conexión e inténtalo de nuevo, o usa la entrada manual.', 'error');
         return;
       }
 
-      // ── Pedir la cámara trasera ──────────────────────────────────────────────
-      try {
-        this.setStatus('Solicitando acceso a la cámara…', 'info');
-        this.stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { ideal: 'environment' } },
-          audio: false,
-        });
-      } catch (err) {
-        console.error('[scanner] getUserMedia', err);
-        const msg = (err && err.name === 'NotAllowedError')
-          ? 'Permiso de cámara denegado. Habilítalo en el navegador o usa la entrada manual.'
-          : 'No se pudo acceder a la cámara. Usa la entrada manual.';
-        this.setStatus(msg, 'error');
-        return;
-      }
-
-      if (this.video) {
-        this.video.srcObject = this.stream;
-        this.video.setAttribute('playsinline', 'true');
-        try { await this.video.play(); } catch (_) {}
-      }
-
-      // ── Preparar BarcodeDetector ──────────────────────────────────────────────
-      if ('BarcodeDetector' in window) {
-        try {
-          let formats = SUPPORTED_FORMATS;
-          if (typeof window.BarcodeDetector.getSupportedFormats === 'function') {
-            const avail = await window.BarcodeDetector.getSupportedFormats();
-            formats = SUPPORTED_FORMATS.filter((f) => avail.includes(f));
-          }
-          this.detector = new window.BarcodeDetector(
-            formats.length ? { formats } : undefined
-          );
-          this.running = true;
-          this.setStatus('Cámara lista. Apunta a un código de barras.', 'ready');
-          this.loop();
-        } catch (err) {
-          console.error('[scanner] BarcodeDetector init', err);
-          this.setStatus('No se pudo iniciar el detector. Usa la entrada manual.', 'error');
-        }
-      } else {
-        this.setStatus(
-          'Tu navegador no soporta detección automática. Escribe o escanea el código en la entrada manual.',
-          'error'
-        );
-      }
+      await this.startCamera();
+      this.watchUnmount();
     },
 
-    // ── Bucle de detección con requestAnimationFrame ─────────────────────────────
-    loop() {
-      // Si el panel fue desmontado (navegación a otra sección), liberar la cámara.
-      if (!this.video || !document.body.contains(this.video)) {
-        this.stop();
-        return;
-      }
-      if (!this.running) return;
-
-      const scheduleNext = () => {
-        this.rafId = requestAnimationFrame(() => this.loop());
-      };
-
-      if (this.scanCooldown || !this.detector ||
-          !this.video.videoWidth || this.video.readyState < 2) {
-        scheduleNext();
+    // ── startCamera(): arranca html5-qrcode con la cámara trasera ────────────────
+    async startCamera() {
+      try {
+        this.reader = new Html5Qrcode('reader', /* verbose */ false);
+      } catch (err) {
+        console.error('[scanner] Html5Qrcode init', err);
+        this.setStatus('No se pudo inicializar el escáner. Usa la entrada manual.', 'error');
         return;
       }
 
-      this.detector.detect(this.video)
-        .then((codes) => {
-          if (codes && codes.length && !this.scanCooldown) {
-            const value = (codes[0].rawValue || '').trim();
-            if (value) this.onCodeDetected(value);
-          }
-        })
-        .catch(() => { /* fotograma no analizable; se ignora */ })
-        .finally(scheduleNext);
+      // Configuración optimizada para códigos de barras 1D (no solo QR).
+      const config = { fps: 10, qrbox: { width: 250, height: 100 } };
+
+      // Si la librería expone el enum de formatos, restringimos a los de retail
+      // para acelerar y robustecer la lectura de barras.
+      if (window.Html5QrcodeSupportedFormats) {
+        const F = window.Html5QrcodeSupportedFormats;
+        config.formatsToSupport = [
+          F.EAN_13, F.EAN_8, F.UPC_A, F.UPC_E,
+          F.CODE_128, F.CODE_39, F.CODE_93, F.ITF, F.CODABAR, F.QR_CODE,
+        ];
+      }
+
+      this.setStatus('Solicitando acceso a la cámara…', 'info');
+
+      try {
+        await this.reader.start(
+          { facingMode: 'environment' },
+          config,
+          (decodedText) => { this.onCodeDetected(decodedText); },
+          (_errorMessage) => { /* ignorar errores de frame vacío para no saturar la consola */ }
+        );
+        this.started = true;
+        this.setStatus('Cámara lista. Apunta a un código de barras.', 'ready');
+      } catch (err) {
+        console.error('Error al iniciar cámara:', err);
+        this.setStatus('Permite el acceso a la cámara para escanear, o usa la entrada manual.', 'error');
+      }
     },
 
     // ── onCodeDetected(): punto de entrada único para cada lectura ───────────────
@@ -203,8 +162,6 @@
 
     // ── Flujo Escanear y Editar ──────────────────────────────────────────────────
     async handleScanEdit(code) {
-      // Detener el bucle mientras se abre el modal de edición.
-      this.running = false;
       this.setStatus('Buscando producto ' + code + '…', 'info');
       try {
         const res = await API.products.findByBarcode(code);
@@ -219,7 +176,6 @@
         }
         // No debería ocurrir (404 lanza error), pero por si acaso:
         this.showResult('Producto no encontrado para ' + code + '.', false, true);
-        this.resume();
       } catch (err) {
         const notFound = err && (err.found === false || err.status === 404 ||
           /no se encontr/i.test(err.message || ''));
@@ -228,17 +184,6 @@
           : ((err && err.message) ? err.message : 'Error al buscar el producto.');
         this.showResult(msg, false, true);
         if (window.App && App.showToast) App.showToast(msg, notFound ? 'info' : 'error');
-        this.resume();
-      }
-    },
-
-    // ── Reanudar el bucle tras un escaneo en modo edición ────────────────────────
-    resume() {
-      if (!this.video || !document.body.contains(this.video)) return;
-      if (this.detector) {
-        this.running = true;
-        this.setStatus('Cámara lista. Apunta a un código de barras.', 'ready');
-        this.loop();
       }
     },
 
@@ -316,19 +261,33 @@
       this.dom.result.classList.remove('hidden');
     },
 
-    // ── stop(): libera la cámara y cancela el bucle ──────────────────────────────────
+    // ── watchUnmount(): libera la cámara al salir del panel ──────────────────────────
+    // navigate() reemplaza el innerHTML del panel, eliminando #reader del DOM.
+    // Detectamos esa eliminación para detener la cámara y no dejarla encendida.
+    watchUnmount() {
+      if (this.watchId) clearInterval(this.watchId);
+      this.watchId = setInterval(() => {
+        if (!this.readerEl || !document.body.contains(this.readerEl)) {
+          this.stop();
+        }
+      }, 1000);
+    },
+
+    // ── stop(): detiene el escaneo y libera la cámara ────────────────────────────────
     stop() {
-      this.running = false;
-      if (this.rafId) { cancelAnimationFrame(this.rafId); this.rafId = null; }
-      if (this.stream) {
-        try { this.stream.getTracks().forEach((t) => t.stop()); } catch (_) {}
-        this.stream = null;
-      }
-      if (this.video) {
-        try { this.video.srcObject = null; } catch (_) {}
-      }
-      this.detector     = null;
+      if (this.watchId) { clearInterval(this.watchId); this.watchId = null; }
       this.scanCooldown = false;
+
+      const r = this.reader;
+      this.reader = null;
+
+      if (r && this.started) {
+        this.started = false;
+        // stop() es asíncrono; clear() limpia el DOM que inyectó la librería.
+        r.stop().then(() => { try { r.clear(); } catch (_) {} }).catch(() => {});
+      } else {
+        this.started = false;
+      }
     },
   };
 
@@ -369,19 +328,18 @@
           </label>
         </div>
 
-        <!-- Visor de cámara -->
+        <!-- Visor de cámara: html5-qrcode inyecta el <video> dentro de #reader -->
         <div class="relative w-full overflow-hidden rounded-lg bg-black border border-slate-800"
              style="aspect-ratio:4/3;max-height:60vh">
-          <video id="scanner-video" autoplay playsinline muted
-                 class="w-full h-full object-cover"></video>
+          <div id="reader" class="w-full h-full object-cover"></div>
 
-          <!-- Línea de escaneo roja -->
-          <div class="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <!-- Línea de escaneo roja (decorativa, flotante encima) -->
+          <div class="pointer-events-none absolute inset-0 flex items-center justify-center z-10">
             <div class="w-[78%] h-[1px] bg-red-500 shadow-[0_0_8px_2px_rgba(239,68,68,.8)]
                         animate-fs-scanline"></div>
           </div>
           <!-- Marco guía -->
-          <div class="pointer-events-none absolute inset-6 border-2 border-white/15 rounded-lg"></div>
+          <div class="pointer-events-none absolute inset-6 border-2 border-white/15 rounded-lg z-10"></div>
         </div>
 
         <!-- Estado -->
@@ -404,28 +362,41 @@
             </button>
           </div>
           <p class="text-xs text-slate-600 mt-2">
-            Útil si tu navegador no soporta la detección por cámara o usas un lector externo.
+            Útil si tu navegador no permite la cámara o usas un lector externo.
           </p>
         </div>
       </div>
     `;
   }
 
-  // Keyframes de la línea de escaneo (CSP-safe: <style> sin inline handlers).
-  function injectScanlineStyle() {
-    if (document.getElementById('fs-scanline-style')) return;
+  // Estilos del visor + keyframes de la línea de escaneo.
+  // CSP-safe: <style> sin inline handlers (styleSrc permite 'unsafe-inline').
+  // Además neutraliza los estilos/controles "feos" que html5-qrcode inyecta,
+  // para mantener la estética slate/indigo premium.
+  function injectScannerStyles() {
+    if (document.getElementById('fs-scanner-style')) return;
     const st = document.createElement('style');
-    st.id = 'fs-scanline-style';
-    st.textContent =
-      '@keyframes fsScanline{0%{transform:translateY(-34%)}50%{transform:translateY(34%)}100%{transform:translateY(-34%)}}' +
-      '.animate-fs-scanline{animation:fsScanline 2.2s ease-in-out infinite}';
+    st.id = 'fs-scanner-style';
+    st.textContent = [
+      '@keyframes fsScanline{0%{transform:translateY(-34%)}50%{transform:translateY(34%)}100%{transform:translateY(-34%)}}',
+      '.animate-fs-scanline{animation:fsScanline 2.2s ease-in-out infinite}',
+      // Contenedor que crea la librería
+      '#reader{border:none!important;padding:0!important;width:100%!important;height:100%!important;background:#000;}',
+      '#reader video{width:100%!important;height:100%!important;object-fit:cover!important;border-radius:0!important;display:block;}',
+      '#reader canvas{display:none!important;}',
+      // Ocultar el logo/imagen informativa y cualquier chrome de UI de la librería
+      '#reader img{display:none!important;}',
+      '#reader__dashboard,#reader__header_message,#reader__status_span{display:none!important;}',
+      '#reader__dashboard_section,#reader__dashboard_section_csr,#reader__dashboard_section_swaplink{display:none!important;}',
+      '#reader a{display:none!important;}',
+    ].join('');
     document.head.appendChild(st);
   }
 
   // ── Módulo de panel para el orquestador (App) ────────────────────────────────────
   const Scanner = {
     render(container) {
-      injectScanlineStyle();
+      injectScannerStyles();
       container.innerHTML = template();
       // init es async, pero render no necesita esperar: la UI ya está montada.
       FullStockScanner.init(container).catch((err) => {

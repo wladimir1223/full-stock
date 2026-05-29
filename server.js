@@ -47,7 +47,7 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc:     ["'self'"],
-      scriptSrc:      ["'self'", 'https://cdn.tailwindcss.com', 'https://cdn.jsdelivr.net'],
+      scriptSrc:      ["'self'", 'https://cdn.tailwindcss.com', 'https://cdn.jsdelivr.net', 'https://unpkg.com'],
       scriptSrcAttr:  ["'none'"],          // sin onclick / onerror / onfocus inline
       styleSrc:       ["'self'", "'unsafe-inline'"],
       imgSrc:         ["'self'", 'data:', 'blob:', 'https:'],
