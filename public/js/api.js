@@ -160,6 +160,14 @@ var API = {
     bulkImport: function(products) {
       return request('POST', '/api/products/bulk-import', { products: products });
     },
+    // Carga Rápida (+1): suma 1 al stock del producto con ese código (o crea borrador).
+    quickScan: function(barcode) {
+      return request('PATCH', '/api/products/quick-scan', { barcode: barcode });
+    },
+    // Escanear y Editar: busca un producto por su código de barras (sin tocar stock).
+    findByBarcode: function(code) {
+      return request('GET', '/api/products/by-barcode?code=' + encodeURIComponent(code));
+    },
   },
   superadmin: {
     logs: function(limit, tenant) {

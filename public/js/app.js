@@ -27,11 +27,12 @@ const App = (() => {
     monitor_logs:  `<svg xmlns="http://www.w3.org/2000/svg" class="w-[1.05rem] h-[1.05rem] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>`,
     monitor_users: `<svg xmlns="http://www.w3.org/2000/svg" class="w-[1.05rem] h-[1.05rem] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>`,
     analytics:     `<svg xmlns="http://www.w3.org/2000/svg" class="w-[1.05rem] h-[1.05rem] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>`,
+    scanner:       `<svg xmlns="http://www.w3.org/2000/svg" class="w-[1.05rem] h-[1.05rem] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4h2v16H3V4zm4 0h1v16H7V4zm3 0h2v16h-2V4zm4 0h1v16h-1V4zm3 0h2v16h-2V4z"/></svg>`,
   };
 
   // ─── Agrupación de paneles en secciones de navegación ────────────────────────
   const NAV_SECTIONS = [
-    { label: 'Inventario',     keys: ['catalog', 'content', 'analytics'] },
+    { label: 'Inventario',     keys: ['catalog', 'content', 'scanner', 'analytics'] },
     { label: 'Configuración',  keys: ['settings']                         },
     { label: 'Herramientas',   keys: ['builder']                          },
     { label: 'Administración', keys: ['monitor', 'apihub']                },
@@ -62,6 +63,7 @@ const App = (() => {
     const base = {
       catalog:   { label: 'Mis Categorías',       module: () => Catalog    },
       content:   { label: 'Mis Productos',         module: () => Content    },
+      scanner:   { label: 'Colector (Escáner)',    module: () => Scanner    },
       analytics: { label: 'Ventas y Analíticas',   module: () => Analytics  },
       settings:  { label: 'Configuración',         module: () => Settings   },
     };
@@ -1537,4 +1539,23 @@ const App = (() => {
 })();
 
 window.App = App;
+
+/**
+ * Puente del Colector de Código de Barras (flujo "Escanear y Editar").
+ * Recibe el producto encontrado por código de barras y abre el editor:
+ * navega al panel de Productos, selecciona su colección y abre el formulario
+ * de edición ya cargado con sus datos. Expuesto en window para que
+ * scanner-controller.js lo invoque.
+ */
+window.abrirModalEdicionConDatos = function (producto) {
+  if (!producto || !producto.collectionSlug || !producto.id) {
+    if (window.App && App.showToast) App.showToast('No se pudo abrir el producto para editar.', 'error');
+    return;
+  }
+  App.navigate('content', {
+    autoSelectSlug: producto.collectionSlug,
+    autoEditId:     producto.id,
+  });
+};
+
 document.addEventListener('DOMContentLoaded', () => App.init());

@@ -392,6 +392,171 @@ async function sellItem(req, res) {
   }
 }
 
+// ─── Colector de código de barras ─────────────────────────────────────────────
+
+/**
+ * Limpia un código de barras dejando solo caracteres alfanuméricos.
+ * Los lectores/cámaras a veces añaden saltos de línea, espacios o caracteres
+ * de control (Enter/Tab) al final del código; los eliminamos antes de buscar
+ * en MongoDB para evitar falsos negativos.
+ */
+function cleanBarcode(raw) {
+  return String(raw == null ? '' : raw).replace(/[^a-zA-Z0-9]/g, '').trim();
+}
+
+// Colección por defecto donde aterrizan los productos borrador creados al
+// escanear un código de barras desconocido (flujo "Carga Rápida").
+const SCAN_COLLECTION_SLUG   = 'colector';
+const SCAN_COLLECTION_NAME   = 'Colector';
+const SCAN_COLLECTION_FIELDS = [
+  { key: 'nombre',      label: 'Nombre',           type: 'short_text' },
+  { key: 'barcode',     label: 'Código de barras', type: 'short_text' },
+  { key: 'precio',      label: 'Precio',           type: 'number'     },
+  { key: 'stock',       label: 'Stock',            type: 'number'     },
+  { key: 'descripcion', label: 'Descripción',      type: 'long_text'  },
+  { key: 'imagen',      label: 'Imagen',           type: 'image_url'  },
+];
+
+/** Devuelve (creándola si no existe) la colección por defecto del colector. */
+async function ensureScanCollection(tenantId) {
+  let col = await Collection.findOne({ tenantId, slug: SCAN_COLLECTION_SLUG });
+  if (!col) {
+    col = await Collection.create({
+      tenantId,
+      name:   SCAN_COLLECTION_NAME,
+      slug:   SCAN_COLLECTION_SLUG,
+      fields: SCAN_COLLECTION_FIELDS,
+    });
+  }
+  return col;
+}
+
+// ─── PATCH /api/products/quick-scan ────────────────────────────────────────────
+//
+// Carga Rápida (+1). Recibe un código de barras y suma 1 al stock del producto
+// que lo tenga asignado. Si no existe ninguno, crea un producto borrador con
+// stock 1 en la colección "Colector".
+//
+// Body: { barcode: "7790001234567" }
+//
+// Lógica (operación ATÓMICA para evitar colisiones entre escaneos simultáneos):
+//   1. Limpiar el código (solo alfanuméricos).
+//   2. findOneAndUpdate { tenantId, 'data.barcode': code } con $inc { 'data.stock': 1 }.
+//   3. Si devuelve null → no existe → crear borrador con stock 1.
+//
+// Respuesta: { success, created, message, data: { id, ...campos, collectionSlug } }
+
+async function quickScan(req, res) {
+  try {
+    const code = cleanBarcode(req.body.barcode);
+    if (!code) {
+      return res.status(400).json({ success: false, message: 'Código de barras inválido o vacío.' });
+    }
+
+    // ── 1. Intento atómico: si el producto ya existe, +1 al stock ──────────────
+    const updated = await Item.findOneAndUpdate(
+      { tenantId: req.tenant.id, 'data.barcode': code },
+      { $inc: { 'data.stock': 1 } },
+      { new: true }
+    );
+
+    if (updated) {
+      const name = updated.data?.nombre || updated.data?.name || code;
+      logActivity(req.tenant, ACTIONS.UPDATE_ITEM,
+        `Carga rápida: +1 a "${name}" (código ${code}) en "${updated.collectionSlug}". Stock: ${updated.data.stock}`,
+        updated._id);
+
+      return res.json({
+        success: true,
+        created: false,
+        message: `+1 a "${name}". Stock actual: ${updated.data.stock}.`,
+        data:    { ...formatItem(updated), collectionSlug: updated.collectionSlug },
+      });
+    }
+
+    // ── 2. No existe → crear borrador con stock 1 ──────────────────────────────
+    // Respetar el límite de productos del plan antes de insertar.
+    const user    = await User.findById(req.tenant.id).select('plan').lean();
+    const plan    = (user && user.plan) || 'basic';
+    const limit   = PLAN_LIMITS[plan] ?? PLAN_LIMITS.basic;
+    const current = await Item.countDocuments({ tenantId: req.tenant.id });
+    if (current >= limit) {
+      return res.status(403).json({
+        success: false,
+        code:    'PLAN_LIMIT_REACHED',
+        plan, limit, current,
+        message: `Límite alcanzado: tu plan "${plan}" permite hasta ${limit} productos. ` +
+                 `Contacta al administrador para subir de nivel.`,
+      });
+    }
+
+    const col  = await ensureScanCollection(req.tenant.id);
+    const item = await Item.create({
+      tenantId:       req.tenant.id,
+      collectionSlug: col.slug,
+      data: {
+        nombre:      'Producto sin nombre',
+        barcode:     code,
+        precio:      0,
+        stock:       1,
+        descripcion: '',
+        imagen:      '',
+      },
+    });
+
+    logActivity(req.tenant, ACTIONS.CREATE_ITEM,
+      `Carga rápida: nuevo borrador (código ${code}) creado en "${col.slug}" con stock 1.`, item._id);
+
+    return res.status(201).json({
+      success: true,
+      created: true,
+      message: 'Producto nuevo detectado: borrador creado con stock 1. Edítalo para completar sus datos.',
+      data:    { ...formatItem(item), collectionSlug: col.slug },
+    });
+
+  } catch (err) {
+    console.error('[quickScan]', err);
+    res.status(500).json({ success: false, message: 'Error al procesar el escaneo rápido.' });
+  }
+}
+
+// ─── GET /api/products/by-barcode?code=... ─────────────────────────────────────
+//
+// Escanear y Editar. Busca un producto por su código de barras (sin modificar
+// el stock) para abrir el modal de edición en el frontend.
+//
+// Respuesta:
+//   200 { success, found:true,  data: { id, ...campos, collectionSlug } }
+//   404 { success:false, found:false, message }
+
+async function findByBarcode(req, res) {
+  try {
+    const code = cleanBarcode(req.query.code);
+    if (!code) {
+      return res.status(400).json({ success: false, message: 'Código de barras inválido o vacío.' });
+    }
+
+    const item = await Item.findOne({ tenantId: req.tenant.id, 'data.barcode': code });
+    if (!item) {
+      return res.status(404).json({
+        success: false,
+        found:   false,
+        message: 'No se encontró ningún producto con ese código de barras.',
+      });
+    }
+
+    res.json({
+      success: true,
+      found:   true,
+      data:    { ...formatItem(item), collectionSlug: item.collectionSlug },
+    });
+
+  } catch (err) {
+    console.error('[findByBarcode]', err);
+    res.status(500).json({ success: false, message: 'Error al buscar el producto.' });
+  }
+}
+
 // ─── POST /api/products/bulk-import ───────────────────────────────────────────
 //
 // Importación masiva. Recibe un lote de productos ya normalizados desde el
@@ -508,4 +673,4 @@ async function bulkImport(req, res) {
   }
 }
 
-module.exports = { listItems, getItem, createItem, updateItem, deleteItem, sellItem, bulkImport };
+module.exports = { listItems, getItem, createItem, updateItem, deleteItem, sellItem, bulkImport, quickScan, findByBarcode };

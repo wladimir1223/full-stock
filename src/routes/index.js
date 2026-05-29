@@ -442,6 +442,12 @@ router.post('/admin/collections/:slug/items/:id/sell',     requireAuth, contCtrl
 // POST /api/products/bulk-import — importación masiva (auto-crea categorías)
 router.post('/api/products/bulk-import',                   requireAuth, contCtrl.bulkImport);
 
+// ── Colector de código de barras ───────────────────────────────────────────────
+// PATCH /api/products/quick-scan — Carga Rápida (+1) atómica; crea borrador si no existe
+router.patch('/api/products/quick-scan',                   requireAuth, contCtrl.quickScan);
+// GET /api/products/by-barcode?code=... — busca producto por código (flujo Escanear y Editar)
+router.get('/api/products/by-barcode',                     requireAuth, contCtrl.findByBarcode);
+
 // ════════════════════════════════════════════════════════════════
 // ADMIN — Upload de imágenes (protegido)
 // ════════════════════════════════════════════════════════════════

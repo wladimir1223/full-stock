@@ -283,6 +283,17 @@ const Content = (() => {
         openForm(main);
         main.querySelector('#item-form-wrapper')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
+
+      // Apertura automática del editor para un item concreto (flujo "Escanear y Editar").
+      if (opts.autoEditId) {
+        const target = data.find(i => i.id === opts.autoEditId);
+        if (target) {
+          openForm(main, target);
+          main.querySelector('#item-form-wrapper')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } else {
+          App.showToast('El producto escaneado ya no está disponible.', 'info');
+        }
+      }
     } catch {
       main.innerHTML = '<p class="text-red-400">Error al cargar los datos.</p>';
     }
