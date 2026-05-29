@@ -25,6 +25,7 @@ const path           = require('path');
 const connectDB      = require('./src/config/db');
 const routes         = require('./src/routes/index');
 const { apiLimiter } = require('./src/middleware/security');
+const { initMailer } = require('./src/utils/mailer');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -126,6 +127,8 @@ app.get('*', (req, res) => {
 async function start() {
   try {
     await connectDB();          // falla aquí si MONGODB_URI no está configurada
+
+    initMailer();               // verifica conexión SMTP y lo reporta en consola
 
     app.listen(PORT, () => {
       console.log(`\n🚀  Full Stock corriendo en http://localhost:${PORT}`);

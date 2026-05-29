@@ -4,8 +4,13 @@
  * Credenciales por variables de entorno:
  *   EMAIL_USER    → usuario/correo de la cuenta SMTP (ej: micuenta@gmail.com)
  *   EMAIL_PASS    → contraseña de aplicación (NO la del correo personal)
- *   EMAIL_SERVICE → opcional, servicio Nodemailer (default: "gmail")
+ *   SMTP_HOST     → opcional, host SMTP explícito (ej: smtp.gmail.com)
+ *   SMTP_PORT     → opcional, puerto SMTP (ej: 465 = SSL, 587 = STARTTLS)
+ *   EMAIL_SERVICE → opcional, atajo de servicio Nodemailer (default: "gmail")
  *   EMAIL_FROM    → opcional, remitente visible (default: "Full Stock <EMAIL_USER>")
+ *
+ * Si se define SMTP_HOST se usa configuración explícita host/port/secure;
+ * si no, se cae al atajo `service` (gmail por defecto).
  *
  * Modo degradado (dev / sin SMTP configurado):
  *   Si faltan EMAIL_USER/EMAIL_PASS, NO se rompe el flujo: se imprime el enlace
@@ -24,11 +29,49 @@ function getTransporter() {
   const pass = process.env.EMAIL_PASS;
   if (!user || !pass) return null;
 
-  _transporter = nodemailer.createTransport({
-    service: process.env.EMAIL_SERVICE || 'gmail',
-    auth: { user, pass },
+  // Configuración: host/port explícitos si SMTP_HOST está definido,
+  // de lo contrario el atajo `service` (gmail por defecto).
+  const host = process.env.SMTP_HOST;
+  const port = process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : undefined;
+
+  const config = host
+    ? {
+        host,
+        port: port || 587,
+        secure: (port || 587) === 465,   // 465 = SSL directo, 587 = STARTTLS
+        auth: { user, pass },
+      }
+    : {
+        service: process.env.EMAIL_SERVICE || 'gmail',
+        auth: { user, pass },
+      };
+
+  _transporter = nodemailer.createTransport(config);
+
+  // ─── Verificación de conexión al servidor SMTP ──────────────────────────────
+  // Se ejecuta una vez al crear el transporter para diagnosticar credenciales
+  // o problemas de red de inmediato en los logs del servidor.
+  _transporter.verify((error, success) => {
+    if (error) {
+      console.error("❌ ERROR CRÍTICO: Nodemailer no pudo conectarse al servidor SMTP:", error);
+    } else {
+      console.log("🟢 ÉXITO: Servidor listo para despachar correos electrónicos");
+    }
   });
+
   return _transporter;
+}
+
+/**
+ * Inicializa el transporter de forma anticipada (al arrancar el servidor)
+ * para que la verificación SMTP se ejecute sin esperar al primer correo.
+ * Si faltan credenciales avisa en consola (modo degradado).
+ */
+function initMailer() {
+  const transporter = getTransporter();
+  if (!transporter) {
+    console.warn('⚠️  [mailer] EMAIL_USER/EMAIL_PASS no configurados — los correos NO se enviarán (modo degradado). El enlace de reseteo se imprimirá en consola.');
+  }
 }
 
 /** Plantilla HTML oscura/índigo coherente con la identidad de Full Stock. */
@@ -110,4 +153,4 @@ async function sendPasswordResetEmail(to, resetUrl) {
   return { delivered: true };
 }
 
-module.exports = { sendPasswordResetEmail };
+module.exports = { sendPasswordResetEmail, initMailer };

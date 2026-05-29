@@ -194,8 +194,12 @@ async function forgotPassword(req, res) {
       try {
         await sendPasswordResetEmail(user.email, resetUrl);
       } catch (mailErr) {
-        // No revelamos el fallo al cliente, pero lo registramos en consola.
-        console.error('[forgotPassword] Error al enviar correo:', mailErr.message);
+        // No revelamos el fallo al cliente, pero registramos el error COMPLETO
+        // en consola para diagnosticar la respuesta exacta del proveedor SMTP.
+        console.error('❌ [forgotPassword] Falló el envío del correo de reseteo.');
+        console.error('   → message:', mailErr.message);
+        console.error('   → code   :', mailErr.code);
+        console.error('   → error completo:', mailErr);
       }
     }
 
