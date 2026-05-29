@@ -25,7 +25,7 @@
     mode:         'quick-add',   // 'quick-add' | 'scan-edit'
     scanCooldown: false,         // bloquea lecturas durante 1.5 s tras detectar
     lastCode:     null,
-    audioCtx:     null,
+    audioContext: null,          // se inicializa en la 1ª interacción (iOS/Android)
     dom:          {},            // referencias a elementos del DOM
 
     // ── init(): mapea el DOM, configura listeners y arranca la cámara ────────────
@@ -44,9 +44,17 @@
       };
       this.readerEl = container.querySelector('#reader');
 
+      // ── Desbloqueo de audio en la 1ª interacción (requisito iOS/Android) ──────
+      // Cualquier toque dentro de la tarjeta del colector registra el gesto de
+      // usuario necesario para que el AudioContext pueda sonar luego.
+      if (this.dom.wrapper) {
+        this.dom.wrapper.addEventListener('click', () => this.unlockAudio());
+      }
+
       // ── Toggle de modo (Carga Rápida ⇄ Escanear y Editar) ─────────────────────
       if (this.dom.toggle) {
         this.dom.toggle.addEventListener('change', () => {
+          this.unlockAudio();   // el cambio de switch cuenta como interacción
           this.mode = this.dom.toggle.checked ? 'scan-edit' : 'quick-add';
           this.updateModeLabel();
         });
@@ -56,6 +64,7 @@
       // ── Entrada manual (fallback / lectores USB tipo teclado) ─────────────────
       if (this.dom.manualBtn && this.dom.manualIn) {
         const submitManual = () => {
+          this.unlockAudio();   // clic/Enter del usuario → desbloquea audio
           const code = (this.dom.manualIn.value || '').trim();
           if (code) {
             this.onCodeDetected(code);
@@ -131,8 +140,7 @@
       setTimeout(() => { this.scanCooldown = false; }, 1500);
 
       // Retroalimentación inmediata: beep + vibración.
-      this.beep();
-      this.vibrate();
+      this.triggerFeedback();
 
       if (this.mode === 'scan-edit') {
         this.handleScanEdit(code);
@@ -187,31 +195,42 @@
       }
     },
 
-    // ── Beep nativo con AudioContext ──────────────────────────────────────────────
-    beep() {
+    // ── Desbloqueo de audio (iOS/Android exigen un gesto previo del usuario) ──────
+    // Inicializa el AudioContext y lo reanuda si quedó suspendido. Debe llamarse
+    // dentro de un handler de interacción (clic / change) para que surta efecto.
+    unlockAudio() {
       try {
-        const Ctx = window.AudioContext || window.webkitAudioContext;
-        if (!Ctx) return;
-        if (!this.audioCtx) this.audioCtx = new Ctx();
-        if (this.audioCtx.state === 'suspended') this.audioCtx.resume();
-
-        const osc  = this.audioCtx.createOscillator();
-        const gain = this.audioCtx.createGain();
-        osc.type = 'square';
-        osc.frequency.value = 880;
-        gain.gain.setValueAtTime(0.0001, this.audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.18, this.audioCtx.currentTime + 0.01);
-        gain.gain.exponentialRampToValueAtTime(0.0001, this.audioCtx.currentTime + 0.16);
-        osc.connect(gain);
-        gain.connect(this.audioCtx.destination);
-        osc.start();
-        osc.stop(this.audioCtx.currentTime + 0.18);
-      } catch (_) { /* audio no disponible; se ignora */ }
+        if (!this.audioContext) {
+          this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (this.audioContext.state === 'suspended') {
+          this.audioContext.resume();
+        }
+      } catch (_) { /* audio no disponible en este navegador; se ignora */ }
     },
 
-    // ── Vibración háptica ─────────────────────────────────────────────────────────
-    vibrate() {
-      try { if (navigator.vibrate) navigator.vibrate(80); } catch (_) {}
+    // ── Beep agudo (1500 Hz) + vibración háptica ──────────────────────────────────
+    triggerFeedback() {
+      // Vibración para móviles (80 ms)
+      if (navigator.vibrate) navigator.vibrate(80);
+
+      // Generar Beep nativo (solo si el audio ya fue desbloqueado)
+      if (!this.audioContext) return;
+
+      try {
+        const oscillator = this.audioContext.createOscillator();
+        const gainNode   = this.audioContext.createGain();
+
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(1500, this.audioContext.currentTime);
+        gainNode.gain.setValueAtTime(0.15, this.audioContext.currentTime); // Volumen al 15%
+
+        oscillator.connect(gainNode);
+        gainNode.connect(this.audioContext.destination);
+
+        oscillator.start();
+        oscillator.stop(this.audioContext.currentTime + 0.1); // Duración: 100 ms
+      } catch (_) { /* el contexto puede no estar listo; se ignora */ }
     },
 
     // ── Flash verde de éxito sobre el visor ───────────────────────────────────────
