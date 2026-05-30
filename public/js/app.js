@@ -768,7 +768,7 @@ const App = (() => {
     return `
       <button class="nav-tab w-full flex items-center gap-2.5 px-3 py-2
                      rounded-lg text-[0.8125rem] font-medium text-slate-400
-                     hover:bg-slate-800 hover:text-slate-200 transition-colors
+                     hover:bg-white/5 hover:text-white transition-all duration-150
                      ${PANELS[k].devOnly ? 'border border-orange-900/30' : ''}"
               data-panel="${k}">
         ${NAV_ICONS[k] || ''}
@@ -780,7 +780,7 @@ const App = (() => {
     const childButtons = children.map(c => `
       <button class="nav-tab w-full flex items-center gap-2.5 pl-8 pr-3 py-1.5
                      rounded-lg text-[0.7875rem] font-medium text-slate-500
-                     hover:bg-slate-800 hover:text-slate-300 transition-colors"
+                     hover:bg-white/5 hover:text-slate-100 transition-all duration-150"
               data-panel="${c}">
         ${NAV_ICONS[c] || ''}
         ${PANELS[c].label}
@@ -790,7 +790,7 @@ const App = (() => {
       <div>
         <button class="nav-group-btn w-full flex items-center gap-2.5 px-3 py-2
                        rounded-lg text-[0.8125rem] font-medium text-slate-400
-                       hover:bg-slate-800 hover:text-slate-200 transition-colors"
+                       hover:bg-white/5 hover:text-white transition-all duration-150"
                 data-group="${groupKey}">
           ${NAV_ICONS[grp.iconKey] || ''}
           <span class="flex-1 text-left">${grp.label}</span>
@@ -814,10 +814,10 @@ const App = (() => {
     const slug = Auth.getTenantSlug();
     if (!slug) return '';
     return `
-      <div class="px-3 py-3 border-t border-slate-800/60 shrink-0">
+      <div class="px-3 py-3 border-t border-white/5 shrink-0">
         <a href="/tienda/${escHtml(slug)}" target="_blank" rel="noopener"
            class="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium
-                  text-slate-500 hover:text-indigo-400 hover:bg-slate-800/60 transition-colors">
+                  text-slate-500 hover:text-indigo-300 hover:bg-white/5 transition-all duration-150">
           <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 shrink-0"
                fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round"
@@ -845,10 +845,10 @@ const App = (() => {
            style="position:fixed;top:1.25rem;right:1.25rem;z-index:9999;
                   display:flex;flex-direction:column;gap:.5rem;pointer-events:none"></div>
 
-      <div class="h-screen bg-slate-950 text-slate-100 flex flex-col overflow-hidden">
+      <div class="h-screen bg-[#0B0F19] text-slate-100 flex flex-col overflow-hidden">
 
         <!-- ══ Header ══════════════════════════════════════════════════════════ -->
-        <header class="h-14 bg-slate-900 border-b border-slate-800 px-4
+        <header class="h-14 bg-slate-900/50 backdrop-blur-md border-b border-white/5 px-4
                         flex items-center gap-3 shrink-0 z-30">
 
           <!-- Hamburger (solo en móvil) -->
@@ -979,7 +979,7 @@ const App = (() => {
         <div class="flex flex-1 overflow-hidden">
 
           <!-- Sidebar desktop (visible en lg+) -->
-          <aside class="hidden lg:flex flex-col w-56 bg-slate-900 border-r border-slate-800 shrink-0">
+          <aside class="hidden lg:flex flex-col w-56 bg-slate-900/50 backdrop-blur-md border-r border-white/5 shrink-0">
             <nav class="flex-1 overflow-y-auto py-5 px-3 space-y-5">
               ${buildSidebarNav()}
             </nav>
@@ -992,10 +992,10 @@ const App = (() => {
 
           <!-- Drawer móvil (offcanvas desde la izquierda) -->
           <aside id="nav-drawer"
-                 class="nav-drawer-panel fixed top-0 left-0 h-full w-64 bg-slate-900
-                        border-r border-slate-800 z-50 flex flex-col lg:hidden">
+                 class="nav-drawer-panel fixed top-0 left-0 h-full w-64 bg-slate-900/80 backdrop-blur-xl
+                        border-r border-white/5 z-50 flex flex-col lg:hidden">
             <!-- Cabecera del drawer -->
-            <div class="h-14 flex items-center gap-3 px-4 border-b border-slate-800 shrink-0">
+            <div class="h-14 flex items-center gap-3 px-4 border-b border-white/5 shrink-0">
               <div class="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600
                           flex items-center justify-center">
                 <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-white" fill="none"
@@ -1025,7 +1025,7 @@ const App = (() => {
           </aside>
 
           <!-- Contenido principal -->
-          <main class="flex-1 overflow-y-auto bg-slate-950">
+          <main class="flex-1 overflow-y-auto bg-[#0B0F19]">
             <div class="px-5 py-7 max-w-6xl mx-auto">
               <div id="panel-content" data-panel="active"></div>
             </div>
@@ -1034,7 +1034,7 @@ const App = (() => {
         </div>
 
         <!-- ══ Footer ══════════════════════════════════════════════════════════ -->
-        <footer class="h-9 bg-slate-900 border-t border-slate-800 px-5
+        <footer class="h-9 bg-slate-900/50 backdrop-blur-md border-t border-white/5 px-5
                         flex items-center justify-between shrink-0">
           <span class="flex items-center gap-2 text-xs text-slate-600">
             Full Stock v2.0

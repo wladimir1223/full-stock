@@ -24,7 +24,7 @@ const Catalog = (() => {
         <!-- ── Encabezado ─────────────────────────────────────────────────── -->
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div>
-            <h2 class="text-2xl font-bold text-white flex items-center gap-2.5">
+            <h2 class="text-2xl font-bold tracking-tight text-white flex items-center gap-2.5">
               <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-indigo-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
               </svg>
@@ -37,11 +37,12 @@ const Catalog = (() => {
           </div>
           <button id="btn-nueva-cat"
             class="shrink-0 flex items-center gap-2
-                   bg-gradient-to-r from-indigo-500 to-violet-600
-                   hover:from-indigo-600 hover:to-violet-700
+                   bg-gradient-to-r from-indigo-500 to-purple-600
                    text-white font-bold text-sm px-5 py-3 rounded-xl
-                   shadow-lg shadow-indigo-900/30 transition-all duration-200
-                   hover:scale-105 active:scale-95">
+                   shadow-[inset_0_1px_0_rgba(255,255,255,0.25),0_10px_24px_-6px_rgba(99,102,241,0.45)]
+                   hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.3),0_14px_30px_-6px_rgba(99,102,241,0.6)]
+                   hover:-translate-y-0.5 active:translate-y-0
+                   transition-all duration-200">
             <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" fill="none"
                  viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
@@ -138,11 +139,11 @@ const Catalog = (() => {
              class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <!-- Skeleton de carga -->
           ${[1,2,3].map(() => `
-            <div class="bg-slate-800/40 border border-slate-700/40 rounded-2xl p-5 animate-pulse">
-              <div class="w-12 h-12 rounded-xl bg-slate-700 mb-4"></div>
-              <div class="h-4 bg-slate-700 rounded w-3/4 mb-2"></div>
-              <div class="h-3 bg-slate-700/50 rounded w-1/2 mb-4"></div>
-              <div class="h-8 bg-slate-700/50 rounded-lg"></div>
+            <div class="bg-white/[0.03] border border-white/10 rounded-2xl p-5 animate-pulse">
+              <div class="w-12 h-12 rounded-xl bg-slate-700/60 mb-4"></div>
+              <div class="h-4 bg-slate-700/60 rounded w-3/4 mb-2"></div>
+              <div class="h-3 bg-slate-700/40 rounded w-1/2 mb-4"></div>
+              <div class="h-8 bg-slate-700/40 rounded-lg"></div>
             </div>
           `).join('')}
         </div>
@@ -259,18 +260,22 @@ const Catalog = (() => {
       data.forEach(col => {
         const card = document.createElement('div');
         card.className =
-          'group bg-slate-800/60 border border-slate-700/80 rounded-2xl p-5 ' +
-          'hover:border-indigo-500/60 hover:bg-slate-800 ' +
+          'group bg-white/[0.03] backdrop-blur-sm border border-white/10 rounded-2xl p-5 ' +
+          'shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] ' +
+          'hover:border-indigo-500/50 hover:bg-white/[0.06] hover:-translate-y-0.5 ' +
+          'hover:shadow-[0_14px_34px_-12px_rgba(99,102,241,0.4)] ' +
           'transition-all duration-200';
 
         card.innerHTML = `
           <!-- Icono + badge campos -->
           <div class="flex items-start justify-between gap-2 mb-4">
             <div class="w-12 h-12 rounded-xl
-                        bg-gradient-to-br from-indigo-500/15 to-violet-600/15
-                        border border-indigo-500/25 flex items-center justify-center
-                        group-hover:from-indigo-500/25 group-hover:to-violet-600/25 transition-all">
-              <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                        bg-gradient-to-br from-indigo-500/20 to-violet-600/20
+                        border border-indigo-500/30 flex items-center justify-center
+                        shadow-[0_0_22px_-4px_rgba(99,102,241,0.55)]
+                        group-hover:from-indigo-500/35 group-hover:to-violet-600/35
+                        group-hover:shadow-[0_0_28px_-2px_rgba(99,102,241,0.75)] transition-all">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-indigo-300 group-hover:text-indigo-200 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10"/>
               </svg>
             </div>
@@ -372,9 +377,11 @@ const Catalog = (() => {
           Nosotros nos encargamos de la configuración técnica.
         </p>
         <button data-action="primera-cat"
-          class="bg-gradient-to-r from-indigo-500 to-violet-600 text-white
-                 font-bold text-sm px-7 py-3.5 rounded-xl hover:opacity-90
-                 transition-all hover:scale-105 active:scale-95 shadow-lg shadow-indigo-900/30">
+          class="bg-gradient-to-r from-indigo-500 to-purple-600 text-white
+                 font-bold text-sm px-7 py-3.5 rounded-xl
+                 shadow-[inset_0_1px_0_rgba(255,255,255,0.25),0_10px_24px_-6px_rgba(99,102,241,0.45)]
+                 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.3),0_14px_30px_-6px_rgba(99,102,241,0.6)]
+                 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200">
           + Crear mi primera categoría
         </button>
       </div>
