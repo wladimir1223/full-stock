@@ -34,16 +34,25 @@ function getTransporter() {
   const host = process.env.SMTP_HOST;
   const port = process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : undefined;
 
+  // Timeouts para fallar rápido si el SMTP no responde (evita cuelgues largos).
+  const timeouts = {
+    connectionTimeout: 10000,   // 10 s para abrir la conexión TCP
+    greetingTimeout:   10000,   // 10 s para el saludo del servidor
+    socketTimeout:     15000,   // 15 s de inactividad del socket
+  };
+
   const config = host
     ? {
         host,
         port: port || 587,
         secure: (port || 587) === 465,   // 465 = SSL directo, 587 = STARTTLS
         auth: { user, pass },
+        ...timeouts,
       }
     : {
         service: process.env.EMAIL_SERVICE || 'gmail',
         auth: { user, pass },
+        ...timeouts,
       };
 
   _transporter = nodemailer.createTransport(config);

@@ -177,38 +177,42 @@ async function forgotPassword(req, res) {
       return res.status(400).json({ success: false, message: 'El email es obligatorio.' });
 
     const normalizedEmail = String(email).toLowerCase().trim();
-    const user            = await userDb.findByEmail(normalizedEmail);
 
-    // Solo generamos token + correo si el usuario existe; en cualquier caso
-    // la respuesta es idéntica (anti-enumeración).
-    if (user) {
-      const token   = crypto.randomBytes(20).toString('hex');
-      const expires = new Date(Date.now() + 3600000); // 1 hora
+    // Base URL para el enlace (se calcula ahora, mientras `req` es válido).
+    const baseUrl = (process.env.APP_URL || `${req.protocol}://${req.get('host')}`).replace(/\/$/, '');
 
-      await userDb.setResetToken(user.id, token, expires);
+    // ── Responder SIEMPRE de inmediato (genérico, anti-enumeración) ──────────────
+    // Importante: NO esperamos al envío del correo. Un SMTP lento o colgado no debe
+    // bloquear la respuesta ni dejar la UI atascada en "Enviando…".
+    res.json({ success: true, message: GENERIC_FORGOT_MSG });
 
-      // Base URL: APP_URL si está definida, si no se deriva del request.
-      const baseUrl  = (process.env.APP_URL || `${req.protocol}://${req.get('host')}`).replace(/\/$/, '');
-      const resetUrl = `${baseUrl}/reset-password.html?token=${token}`;
-
+    // ── Procesar token + correo en segundo plano (no bloquea la respuesta) ───────
+    (async () => {
       try {
+        const user = await userDb.findByEmail(normalizedEmail);
+        if (!user) return;   // usuario inexistente: no se envía nada (silencioso)
+
+        const token   = crypto.randomBytes(20).toString('hex');
+        const expires = new Date(Date.now() + 3600000); // 1 hora
+        await userDb.setResetToken(user.id, token, expires);
+
+        const resetUrl = `${baseUrl}/reset-password.html?token=${token}`;
         await sendPasswordResetEmail(user.email, resetUrl);
       } catch (mailErr) {
-        // No revelamos el fallo al cliente, pero registramos el error COMPLETO
-        // en consola para diagnosticar la respuesta exacta del proveedor SMTP.
-        console.error('❌ [forgotPassword] Falló el envío del correo de reseteo.');
-        console.error('   → message:', mailErr.message);
-        console.error('   → code   :', mailErr.code);
+        // Registramos el error COMPLETO en consola para diagnosticar la respuesta
+        // exacta del proveedor SMTP (Gmail, etc.).
+        console.error('❌ [forgotPassword] Falló el envío del correo de reseteo (segundo plano).');
+        console.error('   → message:', mailErr && mailErr.message);
+        console.error('   → code   :', mailErr && mailErr.code);
         console.error('   → error completo:', mailErr);
       }
-    }
-
-    // Pequeño delay uniforme para mitigar ataques de temporización.
-    return setTimeout(() => res.json({ success: true, message: GENERIC_FORGOT_MSG }), 300);
+    })();
 
   } catch (err) {
     console.error('[forgotPassword]', err);
-    res.status(500).json({ success: false, message: 'Error interno del servidor.' });
+    if (!res.headersSent) {
+      res.status(500).json({ success: false, message: 'Error interno del servidor.' });
+    }
   }
 }
 
