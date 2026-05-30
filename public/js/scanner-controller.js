@@ -310,79 +310,135 @@
     },
   };
 
-  // ── Plantilla HTML del colector (Bloque 1 — Interfaz) ──────────────────────────────
+  // ── Plantilla HTML del colector (Bloque 1 — Interfaz premium) ──────────────────────
+  // Diseño "cristal esmerilado": borde con degradado de luz (1px), fondo translúcido
+  // con backdrop-blur, visor con halo índigo + retículo de puntería, tipografía
+  // corporativa, input con sombra interior y botón 3D metálico.
   function template() {
     return `
-      <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 mb-6 transition-all duration-200"
-           id="fullstock-camera-stream">
+      <!-- Contenedor con borde-degradado (light gradient) que refracta en oscuro -->
+      <div id="fullstock-camera-stream"
+           class="fs-scanner group relative mb-6 rounded-[1.65rem] p-px overflow-hidden
+                  bg-gradient-to-br from-white/20 via-indigo-400/15 to-violet-500/10
+                  shadow-[0_24px_70px_-20px_rgba(2,6,23,0.9)] transition-all duration-300">
 
-        <!-- Cabecera -->
-        <div class="flex items-start gap-3 mb-5">
-          <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shrink-0">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-white" fill="none"
-                 viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
-              <path stroke-linecap="round" stroke-linejoin="round"
-                    d="M3 4h2v16H3V4zm4 0h1v16H7V4zm3 0h2v16h-2V4zm4 0h1v16h-1V4zm3 0h2v16h-2V4z"/>
-            </svg>
+        <!-- Resplandor ambiental superior (decorativo) -->
+        <div class="pointer-events-none absolute -top-24 -right-16 w-72 h-72 rounded-full
+                    bg-indigo-600/20 blur-3xl"></div>
+
+        <!-- Panel de cristal esmerilado -->
+        <div class="relative rounded-[calc(1.65rem-1px)] bg-slate-900/70 backdrop-blur-xl
+                    ring-1 ring-white/5 p-6 sm:p-8">
+
+          <!-- Cabecera -->
+          <div class="flex items-start gap-4 mb-7">
+            <!-- Icono personalizado: código de barras estilizado con halo -->
+            <div class="relative w-12 h-12 rounded-2xl shrink-0 flex items-center justify-center
+                        bg-gradient-to-br from-indigo-400 via-indigo-600 to-violet-700
+                        shadow-[0_10px_28px_-6px_rgba(99,102,241,0.75)] ring-1 ring-white/15">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"
+                   class="w-6 h-6 text-white drop-shadow">
+                <rect x="2.5"  y="5" width="1.3" height="14" rx="0.45"/>
+                <rect x="5"    y="5" width="2.5" height="14" rx="0.45"/>
+                <rect x="8.7"  y="5" width="0.9" height="14" rx="0.45"/>
+                <rect x="11"   y="5" width="2"   height="14" rx="0.45"/>
+                <rect x="14.4" y="5" width="1.2" height="14" rx="0.45"/>
+                <rect x="17"   y="5" width="2.7" height="14" rx="0.45"/>
+                <rect x="20.8" y="5" width="0.8" height="14" rx="0.45"/>
+              </svg>
+              <span class="pointer-events-none absolute inset-0 rounded-2xl ring-1 ring-inset ring-white/25"></span>
+            </div>
+            <div class="min-w-0">
+              <p class="text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-indigo-300/80 mb-1">
+                Inventario en tiempo real
+              </p>
+              <h2 class="text-xl sm:text-2xl font-bold text-white leading-tight tracking-tight">
+                Colector de Código de Barras
+              </h2>
+              <p class="text-sm text-slate-400 mt-1.5 leading-relaxed">
+                Convierte la cámara trasera de tu móvil en un escáner profesional y gestiona
+                existencias en tiempo récord.
+              </p>
+            </div>
           </div>
-          <div class="min-w-0">
-            <h2 class="text-lg font-bold text-white leading-tight">Colector de Código de Barras</h2>
-            <p class="text-sm text-slate-400 mt-0.5">
-              Usa la cámara trasera de tu móvil para gestionar existencias en tiempo récord.
+
+          <!-- Interruptor de modo -->
+          <div class="flex items-center justify-between gap-4 rounded-2xl bg-slate-950/50
+                      ring-1 ring-white/5 backdrop-blur-sm px-5 py-3.5 mb-7
+                      shadow-[inset_0_1px_2px_rgba(0,0,0,0.4)]">
+            <span id="scanner-mode-label" class="text-sm font-semibold text-emerald-400">
+              Modo: Carga Rápida (+1)
+            </span>
+            <label class="relative inline-flex items-center cursor-pointer select-none">
+              <input type="checkbox" id="scanner-mode-toggle" class="sr-only peer"/>
+              <span class="w-12 h-7 bg-emerald-500/80 peer-checked:bg-indigo-500 rounded-full
+                           transition-colors duration-300 block
+                           shadow-[inset_0_1px_3px_rgba(0,0,0,0.45)]"></span>
+              <span class="absolute left-0.5 top-0.5 w-6 h-6 bg-white rounded-full
+                           shadow-[0_2px_6px_rgba(0,0,0,0.5)]
+                           transition-transform duration-300 peer-checked:translate-x-5"></span>
+            </label>
+          </div>
+
+          <!-- Visor de cámara con halo índigo -->
+          <div class="relative">
+            <!-- Halo de resplandor índigo alrededor del visor -->
+            <div class="pointer-events-none absolute -inset-2 rounded-[1.9rem]
+                        bg-indigo-500/20 blur-2xl opacity-80"></div>
+
+            <!-- html5-qrcode inyecta el <video> dentro de #reader -->
+            <div class="relative w-full overflow-hidden rounded-[1.4rem] bg-black
+                        ring-1 ring-white/10 shadow-[0_0_45px_-10px_rgba(99,102,241,0.6)]"
+                 style="aspect-ratio:4/3;max-height:60vh">
+              <div id="reader" class="w-full h-full object-cover"></div>
+
+              <!-- Retículo de puntería (target graphic) superpuesto -->
+              <div class="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
+                <div class="relative w-[72%] max-w-[300px] aspect-[5/2]">
+                  <!-- Esquinas del retículo -->
+                  <span class="absolute -top-px -left-px  w-8 h-8 border-t-2 border-l-2 border-indigo-300/90 rounded-tl-2xl"></span>
+                  <span class="absolute -top-px -right-px w-8 h-8 border-t-2 border-r-2 border-indigo-300/90 rounded-tr-2xl"></span>
+                  <span class="absolute -bottom-px -left-px  w-8 h-8 border-b-2 border-l-2 border-indigo-300/90 rounded-bl-2xl"></span>
+                  <span class="absolute -bottom-px -right-px w-8 h-8 border-b-2 border-r-2 border-indigo-300/90 rounded-br-2xl"></span>
+                  <!-- Láser de puntería fino (se desvanece en los extremos) -->
+                  <div class="fs-laser absolute inset-x-4 h-px
+                              bg-gradient-to-r from-transparent via-red-500 to-transparent
+                              shadow-[0_0_10px_1px_rgba(239,68,68,0.75)]"></div>
+                </div>
+              </div>
+
+              <!-- Viñeta sutil para dar profundidad al borde del visor -->
+              <div class="pointer-events-none absolute inset-0 z-10 rounded-[1.4rem]
+                          shadow-[inset_0_0_60px_rgba(0,0,0,0.55)]"></div>
+            </div>
+          </div>
+
+          <!-- Estado -->
+          <p id="scanner-status" class="mt-4 text-center text-sm text-slate-400">
+            Iniciando cámara…
+          </p>
+
+          <!-- Resultado de la última lectura -->
+          <div id="scanner-result" class="hidden"></div>
+
+          <!-- Entrada manual (fallback) -->
+          <div class="mt-7 pt-6 border-t border-white/5">
+            <label class="block text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-slate-400 mb-2.5"
+                   for="scanner-manual-input">
+              Entrada manual de código
+            </label>
+            <div class="flex gap-3">
+              <input id="scanner-manual-input" type="text" inputmode="numeric"
+                     class="fs-input" placeholder="Escribe o escanea con lector USB…"
+                     autocomplete="off"/>
+              <button id="scanner-manual-btn" class="fs-btn-3d shrink-0" type="button">
+                Procesar
+              </button>
+            </div>
+            <p class="text-xs text-slate-500 mt-3">
+              Útil si tu navegador no permite la cámara o usas un lector externo.
             </p>
           </div>
-        </div>
-
-        <!-- Interruptor de modo -->
-        <div class="flex items-center justify-between gap-4 bg-slate-950/60 border border-slate-800 rounded-lg px-4 py-3 mb-5">
-          <span id="scanner-mode-label" class="text-sm font-semibold text-emerald-400">
-            Modo: Carga Rápida (+1)
-          </span>
-          <label class="relative inline-flex items-center cursor-pointer select-none">
-            <input type="checkbox" id="scanner-mode-toggle" class="sr-only peer"/>
-            <span class="w-11 h-6 bg-emerald-600/70 peer-checked:bg-indigo-600 rounded-full
-                         transition-colors duration-200 block"></span>
-            <span class="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full
-                         transition-transform duration-200 peer-checked:translate-x-5"></span>
-          </label>
-        </div>
-
-        <!-- Visor de cámara: html5-qrcode inyecta el <video> dentro de #reader -->
-        <div class="relative w-full overflow-hidden rounded-lg bg-black border border-slate-800"
-             style="aspect-ratio:4/3;max-height:60vh">
-          <div id="reader" class="w-full h-full object-cover"></div>
-
-          <!-- Línea de escaneo roja (decorativa, flotante encima) -->
-          <div class="pointer-events-none absolute inset-0 flex items-center justify-center z-10">
-            <div class="w-[78%] h-[1px] bg-red-500 shadow-[0_0_8px_2px_rgba(239,68,68,.8)]
-                        animate-fs-scanline"></div>
-          </div>
-          <!-- Marco guía -->
-          <div class="pointer-events-none absolute inset-6 border-2 border-white/15 rounded-lg z-10"></div>
-        </div>
-
-        <!-- Estado -->
-        <p id="scanner-status" class="mt-3 text-center text-sm text-slate-400">
-          Iniciando cámara…
-        </p>
-
-        <!-- Resultado de la última lectura -->
-        <div id="scanner-result" class="hidden"></div>
-
-        <!-- Entrada manual (fallback) -->
-        <div class="mt-5 pt-5 border-t border-slate-800">
-          <label class="label" for="scanner-manual-input">Entrada manual de código</label>
-          <div class="flex gap-2">
-            <input id="scanner-manual-input" type="text" inputmode="numeric"
-                   class="input-field" placeholder="Escribe o escanea con lector USB…"
-                   autocomplete="off"/>
-            <button id="scanner-manual-btn" class="btn-primary shrink-0" type="button">
-              Procesar
-            </button>
-          </div>
-          <p class="text-xs text-slate-600 mt-2">
-            Útil si tu navegador no permite la cámara o usas un lector externo.
-          </p>
         </div>
       </div>
     `;
@@ -397,9 +453,27 @@
     const st = document.createElement('style');
     st.id = 'fs-scanner-style';
     st.textContent = [
-      '@keyframes fsScanline{0%{transform:translateY(-34%)}50%{transform:translateY(34%)}100%{transform:translateY(-34%)}}',
-      '.animate-fs-scanline{animation:fsScanline 2.2s ease-in-out infinite}',
-      // Contenedor que crea la librería
+      // ── Tipografía corporativa (stack profesional, CSP-safe sin fuentes externas) ──
+      ".fs-scanner{font-family:'Inter','Segoe UI Variable Text','Segoe UI',-apple-system,BlinkMacSystemFont,Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;}",
+      '.fs-scanner h2{font-feature-settings:"ss01","cv01";}',
+
+      // ── Láser de puntería: recorre verticalmente el retículo ──────────────────────
+      '@keyframes fsLaser{0%{top:14%;opacity:.55}50%{top:84%;opacity:1}100%{top:14%;opacity:.55}}',
+      '.fs-laser{animation:fsLaser 2.4s cubic-bezier(.45,0,.55,1) infinite;}',
+
+      // ── Input manual: profundidad con sombra interior + foco pulido ──────────────
+      '.fs-input{width:100%;background:#0b1220;border:1px solid #1e293b;border-radius:.85rem;color:#f1f5f9;padding:.7rem 1rem;font-size:.9rem;line-height:1.4;outline:none;box-shadow:inset 0 2px 6px rgba(0,0,0,.55),inset 0 0 0 1px rgba(255,255,255,.02);transition:border-color .18s,box-shadow .2s,background .2s;}',
+      '.fs-input::placeholder{color:#475569;}',
+      '.fs-input:focus{border-color:#6366f1;background:#0d1526;box-shadow:inset 0 2px 6px rgba(0,0,0,.5),0 0 0 4px rgba(99,102,241,.18),0 0 20px -2px rgba(99,102,241,.45);}',
+
+      // ── Botón "Procesar": 3D metálico pulido + resplandor índigo ─────────────────
+      ".fs-btn-3d{position:relative;border:none;border-radius:.85rem;padding:.7rem 1.6rem;font-weight:600;font-size:.9rem;letter-spacing:.01em;color:#fff;cursor:pointer;white-space:nowrap;background:linear-gradient(180deg,#818cf8 0%,#6366f1 46%,#4f46e5 100%);box-shadow:0 1px 0 rgba(255,255,255,.35) inset,0 -2px 6px rgba(49,46,129,.6) inset,0 6px 16px -4px rgba(79,70,229,.7),0 0 22px -4px rgba(99,102,241,.55);transition:transform .12s ease,box-shadow .2s ease,filter .2s ease;}",
+      ".fs-btn-3d::before{content:'';position:absolute;left:1px;right:1px;top:1px;height:48%;border-radius:.8rem .8rem 40% 40%/.8rem .8rem 100% 100%;background:linear-gradient(180deg,rgba(255,255,255,.32),rgba(255,255,255,0));pointer-events:none;}",
+      '.fs-btn-3d:hover{filter:brightness(1.08);box-shadow:0 1px 0 rgba(255,255,255,.4) inset,0 -2px 6px rgba(49,46,129,.6) inset,0 9px 22px -4px rgba(79,70,229,.85),0 0 32px -2px rgba(99,102,241,.7);}',
+      '.fs-btn-3d:active{transform:translateY(2px);box-shadow:0 1px 2px rgba(0,0,0,.4) inset,0 2px 8px -2px rgba(79,70,229,.6);}',
+      '.fs-btn-3d:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(99,102,241,.45),0 6px 16px -4px rgba(79,70,229,.7);}',
+
+      // ── Contenedor que crea la librería html5-qrcode ─────────────────────────────
       '#reader{border:none!important;padding:0!important;width:100%!important;height:100%!important;background:#000;}',
       '#reader video{width:100%!important;height:100%!important;object-fit:cover!important;border-radius:0!important;display:block;}',
       '#reader canvas{display:none!important;}',
